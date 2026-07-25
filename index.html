@@ -167,6 +167,33 @@
   .p1 { background: rgba(242,169,0,0.2); color: #F2A900; }
   .p2 { background: rgba(237,234,226,0.1); color: #EDEAE2; }
   .p3 { background: rgba(31,138,112,0.15); color: #1F8A70; }
+
+  /* Mobile layout fixes (confirmed 2026-07-24 after phone screenshot showed the Top 5
+     row and Pulse panel overflowing / getting cut off on narrow screens). */
+  @media (max-width: 680px) {
+    #ll-root { padding: 20px 14px 48px; }
+    .ll-title { font-size: 22px; }
+    .ll-pulse { grid-template-columns: 1fr; }
+    .ll-donut-wrap { padding-bottom: 6px; }
+    .ll-pulse-right { grid-template-columns: repeat(2, 1fr); }
+    .ll-top5 {
+      display: flex;
+      grid-template-columns: none;
+      overflow-x: auto;
+      gap: 10px;
+      padding-bottom: 6px;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ll-top5-card { min-width: 128px; flex: 0 0 auto; scroll-snap-align: start; }
+    .ll-rung { grid-template-columns: 32px 1fr 58px auto; gap: 8px; padding: 9px 10px; }
+    .ll-rank { font-size: 17px; }
+    .ll-name { font-size: 13px; }
+    .ll-badge { font-size: 9px; padding: 3px 6px; }
+    .ll-modal { width: 94vw; padding: 20px; }
+    .ll-bio-grid { gap: 6px; }
+    .ll-week-row { grid-template-columns: 40px 1fr 1fr 1fr; font-size: 11px; }
+  }
 </style>
 
 <div id="ll-root">
