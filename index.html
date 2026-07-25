@@ -328,8 +328,21 @@
 
   const nextMatch = {
     week: "Week 16",
-    resultsIn: true,
-    courts: []
+    resultsIn: false,
+    courts: [
+      {court: "Court A", players: [
+        {name:"Paul", rank:2},
+        {name:"Joey", rank:7},
+        {name:"Dina", rank:8},
+        {name:"Ben", rank:12}
+      ]},
+      {court: "Court B", players: [
+        {name:"Waqaas", rank:14},
+        {name:"Fabio", rank:16},
+        {name:"Sham", rank:17},
+        {name:"Luis", rank:35}
+      ]}
+    ]
   };
 
   function renderNextMatch(){
