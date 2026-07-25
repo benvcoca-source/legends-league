@@ -426,7 +426,8 @@
     const minR = Math.min(...ranks), maxR = Math.max(...ranks);
     const range = Math.max(maxR - minR, 1);
     const stepX = (w - pad*2) / (hist.length - 1);
-    const points = real.map(d => ({x: pad + d.i * stepX, y: pad + ((d.v - minR) / range) * (h - pad*2), v: d.v, i:d.i}));
+    const invertY = opts.invertY === true;
+    const points = real.map(d => ({x: pad + d.i * stepX, y: pad + (invertY ? (maxR - d.v) / range : (d.v - minR) / range) * (h - pad*2), v: d.v, i:d.i}));
     const linePoints = points.map(p => p.x + ',' + p.y).join(' ');
     const dots = points.map(p =>
       '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="#F2A900" />' +
@@ -523,7 +524,7 @@
     overlay.innerHTML = '<div class="ll-modal">' +
       '<div class="ll-modal-title">Full Participation History</div>' +
       '<div style="font-family:JetBrains Mono, monospace; font-size:10px; color:#5C7285; margin-bottom:10px;">Week 4 through Week 14</div>' +
-      buildSparkline(participationFull.map(p=>p.count), participationFull.map(p=>p.week), {showVals:true}) +
+      buildSparkline(participationFull.map(p=>p.count), participationFull.map(p=>p.week), {showVals:true, invertY:true}) +
       '<button class="ll-modal-close">Close</button>' +
       '</div>';
     document.body.appendChild(overlay);
