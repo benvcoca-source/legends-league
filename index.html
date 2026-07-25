@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legends League — Standings</title>
+</head>
+<body style="margin:0; padding:0; background:#0B1D2E;">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  * { box-sizing: border-box; }
+  #ll-root { font-family: 'Inter', sans-serif; background: #0B1D2E; color: #EDEAE2; min-height: 100vh; padding: 28px 20px 60px; }
+  .ll-header { max-width: 960px; margin: 0 auto 22px; display: flex; align-items: baseline; justify-content: space-between; border-bottom: 2px solid #1F8A70; padding-bottom: 14px; }
+  .ll-title { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 28px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .ll-title span { color: #F2A900; }
+  .ll-subtitle { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5C7285; }
+  .ll-section-label { max-width: 960px; margin: 0 auto 8px; font-family:'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1.5px; color: #1F8A70; text-transform: uppercase; display:flex; align-items:center; gap:6px; }
+  .ll-section-hint { font-size: 9px; color: #5C7285; text-transform: none; letter-spacing: 0; }
+
+  .ll-participation { max-width: 960px; margin: 0 auto 22px; background: #11283D; border: 1px solid #1F8A70; border-radius: 6px; padding: 16px 18px; cursor: pointer; }
+  .ll-participation-bars { display: flex; align-items: flex-end; gap: 14px; height: 110px; margin-top: 6px; }
+  .ll-participation-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+  .ll-participation-bar { width: 100%; max-width: 46px; background: linear-gradient(180deg, #2EC4B6, #1F8A70); border-radius: 3px 3px 0 0; }
+  .ll-participation-num { font-family: 'Oswald', sans-serif; font-size: 13px; color: #EDEAE2; }
+  .ll-participation-week { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #5C7285; }
+
+  .ll-pulse { max-width: 960px; margin: 0 auto 18px; display: grid; grid-template-columns: 200px 1fr; gap: 16px; background: #11283D; border: 1px solid #1F8A70; border-radius: 6px; padding: 18px; }
+  .ll-donut-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .ll-donut { width: 130px; height: 130px; border-radius: 50%; position: relative; display:flex; align-items:center; justify-content:center; }
+  .ll-donut-hole { width: 76px; height: 76px; background: #11283D; border-radius: 50%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ll-donut-hole b { font-family:'Oswald', sans-serif; font-size:20px; color:#F2A900; line-height:1; }
+  .ll-donut-hole span { font-family:'JetBrains Mono', monospace; font-size:8px; color:#5C7285; text-transform:uppercase; }
+  .ll-legend { display:flex; flex-wrap:wrap; gap: 8px 14px; justify-content:center; margin-top: 4px; }
+  .ll-legend-item { display:flex; align-items:center; gap:5px; font-family:'JetBrains Mono', monospace; font-size:10px; color:#5C7285; }
+  .ll-legend-dot { width:8px; height:8px; border-radius:2px; }
+
+  .ll-pulse-right { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .ll-stat-card { background: #16324A; border-radius: 4px; padding: 10px 14px; }
+  .ll-stat-num { font-family: 'Oswald', sans-serif; font-size: 20px; font-weight: 600; color: #F2A900; line-height: 1; }
+  .ll-stat-num small { font-size: 12px; color: #5C7285; font-family: 'Inter', sans-serif; }
+  .ll-stat-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: #5C7285; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
+  .ll-mover-name { color: #EDEAE2; font-weight: 600; font-size: 14px; }
+  .ll-mover-sub { font-family:'JetBrains Mono', monospace; font-size: 9px; color: #5C7285; margin-top:2px; }
+
+  .ll-leaders { max-width: 960px; margin: 0 auto 22px; background: #11283D; border: 1px solid #1F8A70; border-radius: 6px; padding: 16px 18px; cursor: pointer; }
+  .ll-leaders-track { display: flex; gap: 6px; margin-top: 10px; }
+  .ll-leaders-seg { flex: 1; text-align: center; padding: 10px 4px; border-radius: 4px; }
+  .ll-leaders-seg-name { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 12px; }
+  .ll-leaders-seg-week { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; opacity: 0.8; margin-top: 2px; }
+  .ll-leaders-summary { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+  .ll-leaders-chip { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #5C7285; }
+  .ll-leaders-chip b { color: #F2A900; }
+
+  .ll-top5 { max-width: 960px; margin: 0 auto 22px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .ll-top5-card { background: #11283D; border: 1px solid #1c3550; border-radius: 6px; padding: 12px; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
+  .ll-top5-card:hover { border-color: #F2A900; background: #16324A; }
+  .ll-top5-rank { font-family: 'Oswald', sans-serif; font-size: 24px; font-weight: 700; color: #F2A900; line-height: 1; }
+  .ll-top5-name { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px; margin: 4px 0 6px; }
+  .ll-top5-badge { font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 3px 6px; border-radius: 3px; text-transform: uppercase; display: inline-block; margin-top: 6px; }
+
+  .ll-nextmatch {
+    max-width: 960px;
+    margin: 0 auto 22px;
+    background: #11283D;
+    border: 1px solid #F2A900;
+    border-radius: 6px;
+    padding: 16px 18px;
+  }
+  .ll-nextmatch-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .ll-nextmatch-title {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .ll-nextmatch-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    color: #F2A900;
+    background: rgba(242,169,0,0.15);
+    border: 1px solid #F2A900;
+    padding: 3px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .ll-nextmatch-courts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .ll-nextmatch-court {
+    background: #16324A;
+    border-radius: 4px;
+    padding: 10px 14px;
+  }
+  .ll-nextmatch-court-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #1F8A70;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .ll-nextmatch-player {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 3px 0;
+    display: flex;
+    justify-content: space-between;
+  }
+  .ll-nextmatch-player .rk {
+    font-family: 'JetBrains Mono', monospace;
+    color: #5C7285;
+    font-size: 11px;
+  }
+  .ll-controls { max-width: 960px; margin: 0 auto 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .ll-search { flex: 1; min-width: 160px; background: #11283D; border: 1px solid #2A4A63; color: #EDEAE2; padding: 8px 12px; border-radius: 4px; font-family: 'Inter', sans-serif; font-size: 13px; }
+  .ll-search:focus { outline: none; border-color: #1F8A70; }
+  .ll-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ll-pill { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; padding: 6px 10px; border-radius: 14px; border: 1px solid #2A4A63; background: transparent; color: #5C7285; cursor: pointer; text-transform: uppercase; letter-spacing: 0.3px; }
+  .ll-pill.active { background: #1F8A70; border-color: #1F8A70; color: #0B1D2E; font-weight: 600; }
+
+  .ll-ladder { max-width: 960px; margin: 0 auto; }
+  .ll-rung { display: grid; grid-template-columns: 40px 1fr 70px auto; align-items: center; gap: 10px; background: #11283D; border: 1px solid #1c3550; border-left: 3px solid transparent; border-radius: 4px; padding: 10px 14px; margin-bottom: 6px; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
+  .ll-rung:hover { background: #16324A; border-left-color: #F2A900; }
+  .ll-rank { font-family: 'Oswald', sans-serif; font-size: 20px; font-weight: 700; }
+  .ll-name { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px; }
+  .ll-trend { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-align: center; }
+  .ll-trend.up { color: #1F8A70; }
+  .ll-trend.down { color: #D64545; }
+  .ll-trend.flat { color: #5C7285; }
+  .ll-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 4px 8px; border-radius: 3px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  .badge-active { background: rgba(31,138,112,0.18); color: #1F8A70; border: 1px solid #1F8A70; }
+  .badge-grace { background: rgba(242,169,0,0.15); color: #F2A900; border: 1px solid #F2A900; }
+  .badge-atrisk { background: rgba(242,169,0,0.28); color: #F2A900; border: 1px solid #F2A900; }
+  .badge-penalty { background: rgba(214,69,69,0.18); color: #D64545; border: 1px solid #D64545; }
+  .badge-locked { background: rgba(92,114,133,0.2); color: #5C7285; border: 1px solid #5C7285; }
+  .badge-new { background: rgba(237,234,226,0.12); color: #EDEAE2; border: 1px solid #5C7285; }
+  .ll-lock { font-size: 10px; margin-left: 4px; opacity: 0.7; }
+  .ll-empty { text-align: center; padding: 40px; color: #5C7285; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  .ll-overlay { position: fixed; inset: 0; background: rgba(4,12,20,0.8); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+  .ll-modal { background: #11283D; border: 1px solid #1F8A70; border-radius: 8px; padding: 26px; width: 420px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+  .ll-modal-rank { font-family: 'Oswald', sans-serif; font-size: 44px; font-weight: 700; color: #F2A900; line-height: 1; }
+  .ll-modal-name { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 19px; margin: 4px 0 2px; }
+  .ll-modal-title { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 18px; text-transform: uppercase; margin-bottom: 4px; }
+  .ll-chart-label { font-family:'JetBrains Mono', monospace; font-size: 10px; color:#5C7285; text-transform:uppercase; letter-spacing:0.5px; margin: 18px 0 6px; }
+  .ll-bio-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .ll-bio-card { background: #16324A; border-radius: 4px; padding: 10px; text-align: center; }
+  .ll-bio-num { font-family: 'Oswald', sans-serif; font-size: 22px; color: #F2A900; font-weight: 600; line-height:1; }
+  .ll-bio-label { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; color: #5C7285; text-transform: uppercase; margin-top: 4px; }
+  .ll-consistency-track { display: flex; gap: 4px; margin-top: 6px; }
+  .ll-consistency-seg { flex: 1; height: 8px; border-radius: 2px; background: #1c3550; }
+  .ll-consistency-seg.filled { background: #1F8A70; }
+  .ll-modal-close { margin-top: 18px; width: 100%; background: transparent; border: 1px solid #5C7285; color: #EDEAE2; padding: 8px; border-radius: 4px; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px; }
+  .ll-modal-close:hover { border-color: #F2A900; color: #F2A900; }
+  .ll-week-row { display: grid; grid-template-columns: 50px 1fr 1fr 1fr; gap: 8px; padding: 8px 0; border-bottom: 1px solid #1c3550; font-size: 12px; align-items: center; }
+  .ll-week-row .wk { font-family: 'JetBrains Mono', monospace; color: #5C7285; font-size: 10px; }
+  .ll-podium { font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; text-align: center; }
+  .p1 { background: rgba(242,169,0,0.2); color: #F2A900; }
+  .p2 { background: rgba(237,234,226,0.1); color: #EDEAE2; }
+  .p3 { background: rgba(31,138,112,0.15); color: #1F8A70; }
+</style>
+
+<div id="ll-root">
+  <div class="ll-header">
+    <div>
+      <div class="ll-title">Legends<span>League</span></div>
+      <div class="ll-subtitle">OAKVILLE PADEL ORGANIZATION &mdash; STANDINGS THROUGH WEEK 15</div>
+    </div>
+  </div>
+
+  <div class="ll-nextmatch">
+    <div class="ll-nextmatch-header">
+      <div class="ll-nextmatch-title" id="ll-nextmatch-title">Next Match</div>
+      <div class="ll-nextmatch-status" id="ll-nextmatch-status">Results Pending</div>
+    </div>
+    <div class="ll-nextmatch-courts" id="ll-nextmatch-courts"></div>
+  </div>
+
+  <div class="ll-section-label">League Participation <span class="ll-section-hint">(last 5 weeks &mdash; click for full history)</span></div>
+  <div class="ll-participation" id="ll-participation-card">
+    <div class="ll-participation-bars" id="ll-participation"></div>
+  </div>
+
+  <div class="ll-pulse">
+    <div class="ll-donut-wrap">
+      <div class="ll-donut" id="ll-donut"><div class="ll-donut-hole"><b id="ll-donut-total"></b><span>Players</span></div></div>
+      <div class="ll-legend" id="ll-legend"></div>
+    </div>
+    <div class="ll-pulse-right">
+      <div class="ll-stat-card"><div class="ll-stat-num" id="ll-stat-avg"></div><div class="ll-stat-label">Avg Active / Week</div></div>
+      <div class="ll-stat-card"><div class="ll-stat-num" id="ll-stat-thisweek"></div><div class="ll-stat-label">Active This Week</div></div>
+      <div class="ll-stat-card"><div class="ll-mover-name" id="ll-stat-climb-alltime"></div><div class="ll-mover-sub" id="ll-stat-climb-alltime-sub"></div><div class="ll-stat-label">Biggest Climb &mdash; All-Time</div></div>
+      <div class="ll-stat-card"><div class="ll-mover-name" id="ll-stat-climb-lastweek"></div><div class="ll-mover-sub" id="ll-stat-climb-lastweek-sub"></div><div class="ll-stat-label">Biggest Climb &mdash; Last Week</div></div>
+    </div>
+  </div>
+
+  <div class="ll-section-label">Who's Been #1 <span class="ll-section-hint">(last 5 weeks &mdash; click for top 3 tracker)</span></div>
+  <div class="ll-leaders" id="ll-leaders-card">
+    <div class="ll-leaders-track" id="ll-leaders-track"></div>
+    <div class="ll-leaders-summary" id="ll-leaders-summary"></div>
+  </div>
+
+  <div class="ll-section-label">Top 5</div>
+  <div class="ll-top5" id="ll-top5"></div>
+
+  <div class="ll-controls">
+    <input class="ll-search" id="ll-search" placeholder="Search a player..." />
+    <div class="ll-pills" id="ll-pills"></div>
+  </div>
+  <div id="ll-view-leaderboard" class="ll-ladder"></div>
+</div>
+
+<script>
+(function(){
+  const weekLabels = ['W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12','W13','W14','W15'];
+
+  // Full season rank history, W4 through W14. null = not yet in league.
+  const players = [
+    {name:"Max", hist:[4,1,2,1,2,1,1,2,2,2,1,2,3,3,3], status:"Active", wins:4, weeksPlayed:12, weeksEligible:13},
+    {name:"Subhan", hist:[22,21,8,2,3,4,4,6,4,4,4,4,2,2,1], status:"Grace", wins:3, weeksPlayed:7, weeksEligible:13},
+    {name:"Billy", hist:[21,20,1,3,1,2,2,1,1,1,2,3,4,4,4], status:"Active", wins:3, weeksPlayed:11, weeksEligible:13},
+    {name:"Hussam", hist:[2,2,3,4,6,6,6,4,6,8,10,12,15,17,18], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:13},
+    {name:"Andreu", hist:[1,3,4,5,4,8,12,13,14,14,13,10,14,13,15], status:"Penalty", wins:1, weeksPlayed:4, weeksEligible:13},
+    {name:"George", hist:[17,16,20,6,5,5,5,7,11,13,15,17,19,21,21], status:"Penalty", wins:1, weeksPlayed:2, weeksEligible:13},
+    {name:"Ismail", hist:[3,4,5,7,9,9,8,5,7,5,5,5,7,9,11], status:"Penalty", wins:0, weeksPlayed:4, weeksEligible:13},
+    {name:"Roman", hist:[5,5,6,8,10,17,18,18,18,20,20,22,24,25,24], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:13},
+    {name:"Saad", hist:[6,6,7,9,12,18,19,19,19,21,21,23,25,26,25], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:13},
+    {name:"Asdaq", hist:[20,22,9,10,7,2,3,3,3,3,3,1,1,1,33], status:"Locked", wins:3, weeksPlayed:9, weeksEligible:13, locked:true},
+    {name:"Jon", hist:[18,19,10,11,8,7,7,11,9,9,8,8,11,11,10], status:"At Risk", wins:1, weeksPlayed:7, weeksEligible:13},
+    {name:"Ben", hist:[7,7,11,12,11,12,11,12,13,12,11,9,12,12,12], status:"Active", wins:2, weeksPlayed:11, weeksEligible:13},
+    {name:"Abdo", hist:[8,8,12,13,16,19,20,20,20,22,22,24,26,27,26], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:13},
+    {name:"Waqaas", hist:[9,9,13,14,15,15,16,16,16,17,18,18,18,16,14], status:"Grace", wins:0, weeksPlayed:8, weeksEligible:13},
+    {name:"Liam", hist:[10,10,14,15,17,20,21,21,21,23,23,25,27,28,27], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:13},
+    {name:"Rodrigo", hist:[11,11,15,16,18,21,22,23,23,24,24,26,28,29,28], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:13},
+    {name:"Kian", hist:[12,12,16,17,19,22,23,24,24,25,25,27,29,30,29], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:13},
+    {name:"Emjay", hist:[13,13,17,18,20,23,24,25,25,26,26,29,31,31,30], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:13},
+    {name:"Peps", hist:[14,14,18,19,21,24,25,26,26,27,27,30,32,32,31], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:13},
+    {name:"M", hist:[15,15,19,20,22,25,26,27,27,28,28,31,33,33,32], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:13},
+    {name:"Joey", hist:[16,17,21,21,14,14,15,15,15,16,16,15,9,8,7], status:"Active", wins:0, weeksPlayed:7, weeksEligible:13},
+    {name:"Omar", hist:[null,null,null,22,23,16,17,17,17,19,19,21,23,24,23], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:12},
+    {name:"Ahmed Abouzeid", hist:[null,null,null,23,24,10,9,8,12,11,12,14,17,19,20], status:"Penalty", wins:1, weeksPlayed:4, weeksEligible:12},
+    {name:"Paul", hist:[19,18,22,24,13,13,13,9,5,6,6,6,5,5,2], status:"Active", wins:4, weeksPlayed:11, weeksEligible:13},
+    {name:"Mohammed", hist:[23,23,23,25,25,11,10,10,8,7,7,7,10,10,9], status:"Active", wins:0, weeksPlayed:7, weeksEligible:13},
+    {name:"Fabio", hist:[null,null,null,26,26,26,27,22,22,18,17,20,21,20,16], status:"Grace", wins:0, weeksPlayed:7, weeksEligible:12},
+    {name:"Ahmed Khalil", hist:[24,24,24,27,27,27,28,28,28,29,29,32,34,34,34], status:"Locked", wins:0, weeksPlayed:0, weeksEligible:13, locked:true},
+    {name:"Sham", hist:[null,null,null,null,null,null,14,14,10,10,9,11,13,15,17], status:"Penalty", wins:0, weeksPlayed:2, weeksEligible:9},
+    {name:"Mik", hist:[null,null,null,null,null,null,null,null,29,15,14,13,8,7,6], status:"Active", wins:2, weeksPlayed:3, weeksEligible:7},
+    {name:"Raj", hist:[null,null,null,null,null,null,null,null,30,30,30,19,20,18,19], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:7},
+    {name:"Sean", hist:[null,null,null,null,null,null,null,null,null,null,32,16,6,6,5], status:"At Risk", wins:2, weeksPlayed:2, weeksEligible:5},
+    {name:"Oomesh", hist:[null,null,null,null,null,null,null,null,null,null,31,28,22,23,22], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:5},
+    {name:"Dina", hist:[null,null,null,null,null,null,null,null,null,null,null,33,30,22,8], status:"Active", wins:0, weeksPlayed:3, weeksEligible:4},
+    {name:"Ahsan", hist:[null,null,null,null,null,null,null,null,null,null,null,null,16,14,13], status:"At Risk", wins:0, weeksPlayed:1, weeksEligible:3},
+    {name:"Luis", hist:[null,null,null,null,null,null,null,null,null,null,null,null,null,35,35], status:"Grace", wins:0, weeksPlayed:0, weeksEligible:1}
+  ];
+
+  const participationFull = [
+    {week:"W3", count:8},{week:"W4", count:12},{week:"W5", count:12},{week:"W6", count:8},
+    {week:"W7", count:8},{week:"W8", count:8},{week:"W9", count:8},{week:"W10", count:8},
+    {week:"W11", count:8},{week:"W12", count:12},{week:"W13", count:12},{week:"W14", count:8},
+    {week:"W15", count:8}
+  ];
+  const participationLast5 = participationFull.slice(-5);
+
+  const top3ByWeekFull = [
+    {week:"W1", top3:["Andreu","Hussam","Ismail"]},
+    {week:"W2", top3:["Max","Hussam","Andreu"]},
+    {week:"W3", top3:["Billy","Max","Hussam"]},
+    {week:"W4", top3:["Max","Subhan","Billy"]},
+    {week:"W5", top3:["Billy","Max","Subhan"]},
+    {week:"W6", top3:["Billy","Asdaq","Max"]},
+    {week:"W7", top3:["Max","Billy","Asdaq"]},
+    {week:"W8", top3:["Billy","Max","Asdaq"]},
+    {week:"W9", top3:["Billy","Max","Asdaq"]},
+    {week:"W10", top3:["Billy","Max","Asdaq"]},
+    {week:"W11", top3:["Max","Billy","Asdaq"]},
+    {week:"W12", top3:["Asdaq","Max","Billy"]},
+    {week:"W13", top3:["Asdaq","Subhan","Max"]},
+    {week:"W14", top3:["Asdaq","Subhan","Max"]},
+    {week:"W15", top3:["Subhan","Paul","Max"]}
+  ];
+  const top3ByWeek = top3ByWeekFull.slice(-5);
+  const numberOneByWeek = top3ByWeek.map(w => ({week:w.week, name:w.top3[0]}));
+  const numberOneByWeekFull = top3ByWeekFull.map(w => ({week:w.week, name:w.top3[0]}));
+  const championColors = { "Billy": "#2EC4B6", "Max": "#F2A900", "Asdaq": "#B589D6", "Andreu": "#E07A5F", "Subhan": "#4C956C" };
+
+  players.forEach(p => {
+    const real = p.hist.filter(v => v !== null);
+    p.rank = real[real.length - 1];
+    p.prev = real.length > 1 ? real[real.length - 2] : p.rank;
+    p.hist5 = p.hist.slice(-5);
+  });
+
+  const nextMatch = {
+    week: "Week 16",
+    resultsIn: true,
+    courts: []
+  };
+
+  function renderNextMatch(){
+    const section = document.querySelector('.ll-nextmatch');
+    if(nextMatch.resultsIn){
+      section.style.display = 'none';
+      return;
+    }
+    document.getElementById('ll-nextmatch-title').textContent = 'Next Match — ' + nextMatch.week;
+    document.getElementById('ll-nextmatch-courts').innerHTML = nextMatch.courts.map(c =>
+      '<div class="ll-nextmatch-court">' +
+        '<div class="ll-nextmatch-court-title">' + c.court + '</div>' +
+        c.players.map(p => '<div class="ll-nextmatch-player"><span>' + p.name + '</span><span class="rk">#' + p.rank + '</span></div>').join('') +
+      '</div>'
+    ).join('');
+  }
+
+  const statusColors = { "Active": "#1F8A70", "Grace": "#F2A900", "At Risk": "#d98c00", "Penalty": "#D64545", "Locked": "#5C7285", "New": "#8fa3b3" };
+  const statusPills = ["All","Active","Grace","At Risk","Penalty","New","Locked"];
+  let currentStatusFilter = "All";
+  let currentSearch = "";
+
+  function statusClass(s){
+    if(s==="Active") return "badge-active";
+    if(s==="Grace") return "badge-grace";
+    if(s==="At Risk") return "badge-atrisk";
+    if(s==="Penalty") return "badge-penalty";
+    if(s==="New") return "badge-new";
+    return "badge-locked";
+  }
+  function statusLabel(s){
+    if(s==="Penalty") return "Inactive";
+    if(s==="Locked") return "Inactive";
+    return s;
+  }
+  function trendHtml(p){
+    const diff = p.prev - p.rank;
+    if(diff > 0) return '<span class="ll-trend up">&uarr; ' + diff + '</span>';
+    if(diff < 0) return '<span class="ll-trend down">&darr; ' + Math.abs(diff) + '</span>';
+    return '<span class="ll-trend flat">&harr;&#65039;</span>';
+  }
+
+  function renderParticipationBars(targetId, data){
+    const max = Math.max(...data.map(p => p.count));
+    document.getElementById(targetId).innerHTML = data.map(p => {
+      const heightPct = (p.count / max) * 100;
+      return '<div class="ll-participation-col"><div class="ll-participation-num">' + p.count + '</div>' +
+        '<div class="ll-participation-bar" style="height:' + heightPct + '%"></div>' +
+        '<div class="ll-participation-week">' + p.week + '</div></div>';
+    }).join('');
+  }
+
+  function renderDonut(){
+    const counts = {};
+    statusPills.slice(1).forEach(s => counts[s] = 0);
+    players.forEach(p => { counts[p.status] = (counts[p.status]||0) + 1; });
+    let acc = 0;
+    const total = players.length;
+    const stops = [];
+    Object.keys(counts).forEach(s => {
+      if(counts[s] === 0) return;
+      const start = (acc / total) * 360;
+      acc += counts[s];
+      const end = (acc / total) * 360;
+      stops.push(statusColors[s] + ' ' + start.toFixed(1) + 'deg ' + end.toFixed(1) + 'deg');
+    });
+    document.getElementById('ll-donut').style.background = 'conic-gradient(' + stops.join(', ') + ')';
+    document.getElementById('ll-donut-total').textContent = total;
+    document.getElementById('ll-legend').innerHTML = Object.keys(counts).filter(s=>counts[s]>0).map(s =>
+      '<div class="ll-legend-item"><div class="ll-legend-dot" style="background:' + statusColors[s] + '"></div>' + statusLabel(s) + ' (' + counts[s] + ')</div>'
+    ).join('');
+  }
+
+  function renderPulseStats(){
+    const rawAvg = participationFull.reduce((s,p)=>s+p.count,0) / participationFull.length;
+    const avgCourts = Math.max(1, Math.round(rawAvg / 4));
+    const avgRounded = avgCourts * 4;
+    document.getElementById('ll-stat-avg').innerHTML = avgRounded;
+    document.getElementById('ll-stat-thisweek').textContent = participationFull[participationFull.length-1].count;
+
+    let bestAll = {name:null, jump:-Infinity, week:null};
+    players.forEach(p => {
+      for(let i=1;i<p.hist.length;i++){
+        if(p.hist[i]===null || p.hist[i-1]===null) continue;
+        const jump = p.hist[i-1] - p.hist[i];
+        if(jump > bestAll.jump) bestAll = {name:p.name, jump, week:weekLabels[i]};
+      }
+    });
+    document.getElementById('ll-stat-climb-alltime').textContent = bestAll.name + ' (+' + bestAll.jump + ')';
+    document.getElementById('ll-stat-climb-alltime-sub').textContent = bestAll.week;
+
+    let bestLast = {name:null, jump:-Infinity};
+    players.forEach(p => {
+      const diff = p.prev - p.rank;
+      if(diff > bestLast.jump) bestLast = {name:p.name, jump:diff};
+    });
+    document.getElementById('ll-stat-climb-lastweek').textContent = bestLast.name + ' (+' + bestLast.jump + ')';
+    document.getElementById('ll-stat-climb-lastweek-sub').textContent = weekLabels[weekLabels.length-1];
+  }
+
+  function renderLeadersTrack(){
+    const counts = {};
+    numberOneByWeek.forEach(w => counts[w.name] = (counts[w.name]||0)+1);
+    document.getElementById('ll-leaders-track').innerHTML = numberOneByWeek.map(w =>
+      '<div class="ll-leaders-seg" style="background:rgba(242,169,0,0.12); border:1px solid #F2A900;">' +
+        '<div class="ll-leaders-seg-name" style="color:#F2A900;">' + w.name + '</div>' +
+        '<div class="ll-leaders-seg-week">' + w.week + '</div>' +
+      '</div>'
+    ).join('');
+    document.getElementById('ll-leaders-summary').innerHTML = Object.keys(counts).map(n =>
+      '<div class="ll-leaders-chip"><b>' + counts[n] + '</b> week' + (counts[n]>1?'s':'') + ' at #1 &mdash; ' + n + '</div>'
+    ).join('');
+  }
+
+  function buildSparkline(hist, labels, opts){
+    opts = opts || {};
+    const w = opts.w || 300, h = opts.h || 90, pad = opts.pad || 14, showLabels = opts.showLabels !== false, showVals = opts.showVals !== false;
+    const real = hist.map((v,i) => ({v, i})).filter(d => d.v !== null);
+    if(real.length < 2) return '<div style="font-family:JetBrains Mono, monospace; font-size:10px; color:#5C7285; text-align:center; padding:14px 0;">Not enough history</div>';
+    const ranks = real.map(d => d.v);
+    const minR = Math.min(...ranks), maxR = Math.max(...ranks);
+    const range = Math.max(maxR - minR, 1);
+    const stepX = (w - pad*2) / (hist.length - 1);
+    const points = real.map(d => ({x: pad + d.i * stepX, y: pad + ((d.v - minR) / range) * (h - pad*2), v: d.v, i:d.i}));
+    const linePoints = points.map(p => p.x + ',' + p.y).join(' ');
+    const dots = points.map(p =>
+      '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="#F2A900" />' +
+      (showVals ? '<text x="' + p.x + '" y="' + (p.y - 7) + '" fill="#EDEAE2" font-size="9" font-family="JetBrains Mono, monospace" text-anchor="middle">#' + p.v + '</text>' : '')
+    ).join('');
+    const labelsHtml = showLabels ? hist.map((v,i) => {
+      const x = pad + i * stepX;
+      return '<text x="' + x + '" y="' + (h+2) + '" fill="#5C7285" font-size="8" font-family=\'JetBrains Mono, monospace\' text-anchor="middle">' + labels[i] + '</text>';
+    }).join('') : '';
+    return '<svg viewBox="0 0 ' + w + ' ' + (h + (showLabels?14:4)) + '" style="width:100%; height:auto;">' +
+      '<polyline points="' + linePoints + '" fill="none" stroke="#1F8A70" stroke-width="2" />' + dots + labelsHtml + '</svg>';
+  }
+
+  function renderTop5(){
+    const top5 = players.slice().sort((a,b)=>a.rank-b.rank).slice(0,5);
+    document.getElementById('ll-top5').innerHTML = top5.map(p =>
+      '<div class="ll-top5-card" data-name="' + p.name + '">' +
+        '<div class="ll-top5-rank">#' + p.rank + '</div><div class="ll-top5-name">' + p.name + '</div>' +
+        buildSparkline(p.hist5, weekLabels.slice(-5), {w:160, h:55, pad:10, showLabels:false, showVals:false}) +
+        '<span class="ll-badge ll-top5-badge ' + statusClass(p.status) + '">' + statusLabel(p.status) + '</span>' +
+      '</div>'
+    ).join('');
+    document.querySelectorAll('.ll-top5-card').forEach(el => {
+      el.addEventListener('click', () => showModal(players.find(d => d.name === el.getAttribute('data-name'))));
+    });
+  }
+
+  function renderPills(){
+    const el = document.getElementById('ll-pills');
+    el.innerHTML = statusPills.map(s => '<button class="ll-pill' + (s===currentStatusFilter ? ' active' : '') + '" data-status="' + s + '">' + statusLabel(s) + '</button>').join('');
+    el.querySelectorAll('.ll-pill').forEach(btn => {
+      btn.addEventListener('click', () => { currentStatusFilter = btn.getAttribute('data-status'); renderPills(); applyFilters(); });
+    });
+  }
+
+  function renderLadder(data){
+    const container = document.getElementById('ll-view-leaderboard');
+    if(data.length === 0){ container.innerHTML = '<div class="ll-empty">No players match this filter.</div>'; return; }
+    container.innerHTML = data.sort((a,b)=>a.rank-b.rank).map(p =>
+      '<div class="ll-rung" data-name="' + p.name + '">' +
+      '<div class="ll-rank">' + p.rank + '</div>' +
+      '<div class="ll-name">' + p.name + '</div>' +
+      '<div>' + trendHtml(p) + '</div>' +
+      '<div class="ll-badge ' + statusClass(p.status) + '">' + statusLabel(p.status) + '</div>' +
+      '</div>'
+    ).join('');
+    container.querySelectorAll('.ll-rung').forEach(el => {
+      el.addEventListener('click', () => showModal(players.find(d => d.name === el.getAttribute('data-name'))));
+    });
+  }
+
+  function applyFilters(){
+    let filtered = players;
+    if(currentStatusFilter !== "All") filtered = filtered.filter(p => p.status === currentStatusFilter);
+    if(currentSearch) filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearch));
+    renderLadder(filtered);
+  }
+
+  function showModal(p){
+    const diff = p.prev - p.rank;
+    const trendText = diff > 0 ? ('Climbed ' + diff + ' spot' + (diff>1?'s':'') + ' since last week') : diff < 0 ? ('Dropped ' + Math.abs(diff) + ' spot' + (Math.abs(diff)>1?'s':'') + ' since last week') : 'No change since last week';
+    const hasHistory = p.weeksEligible > 0;
+    const consistencyPct = hasHistory ? Math.round((p.weeksPlayed / p.weeksEligible) * 100) : null;
+    const overlay = document.createElement('div');
+    overlay.className = 'll-overlay';
+    overlay.innerHTML = '<div class="ll-modal">' +
+      '<div class="ll-modal-rank">#' + p.rank + '</div><div class="ll-modal-name">' + p.name + '</div>' +
+      '<span class="ll-badge ' + statusClass(p.status) + '">' + statusLabel(p.status) + '</span>' +
+      '<div class="ll-chart-label">Rank Trend &mdash; Last 5 Weeks</div>' +
+      buildSparkline(p.hist5, weekLabels.slice(-5)) +
+      '<div style="font-family:JetBrains Mono, monospace; font-size:11px; color:#5C7285; margin-top:4px;">' + trendText + '</div>' +
+      '<div class="ll-chart-label">Full Season History</div>' +
+      buildSparkline(p.hist, weekLabels, {showVals:false}) +
+      '<div class="ll-chart-label">Career Stats &mdash; Full Season</div>' +
+      '<div class="ll-bio-grid">' +
+        '<div class="ll-bio-card"><div class="ll-bio-num">' + p.wins + '</div><div class="ll-bio-label">Season Wins</div></div>' +
+        '<div class="ll-bio-card"><div class="ll-bio-num">' + (hasHistory ? (p.weeksPlayed + '/' + p.weeksEligible) : '&mdash;') + '</div><div class="ll-bio-label">Weeks Played</div></div>' +
+        '<div class="ll-bio-card"><div class="ll-bio-num">' + (hasHistory ? consistencyPct + '%' : '&mdash;') + '</div><div class="ll-bio-label">Consistency</div></div>' +
+      '</div>' +
+      (hasHistory ?
+        '<div style="background:#0B1D2E; border-radius:3px; overflow:hidden; margin-top:8px;"><div style="width:' + consistencyPct + '%; background:#1F8A70; height:8px;"></div></div>'
+        : '<div style="font-family:JetBrains Mono, monospace; font-size:10px; color:#5C7285; margin-top:8px;">Pipeline starts next week</div>'
+      ) +
+      '<button class="ll-modal-close">Close</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.querySelector('.ll-modal-close').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.remove(); });
+  }
+
+  function showParticipationModal(){
+    const overlay = document.createElement('div');
+    overlay.className = 'll-overlay';
+    overlay.innerHTML = '<div class="ll-modal">' +
+      '<div class="ll-modal-title">Full Participation History</div>' +
+      '<div style="font-family:JetBrains Mono, monospace; font-size:10px; color:#5C7285; margin-bottom:10px;">Week 4 through Week 14</div>' +
+      buildSparkline(participationFull.map(p=>p.count), participationFull.map(p=>p.week), {showVals:true}) +
+      '<button class="ll-modal-close">Close</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.querySelector('.ll-modal-close').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.remove(); });
+  }
+
+  function textColorFor(hexColor){
+    const hex = hexColor.replace('#','');
+    const r = parseInt(hex.substring(0,2),16), g = parseInt(hex.substring(2,4),16), b = parseInt(hex.substring(4,6),16);
+    const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+    return luminance > 0.62 ? '#0B1D2E' : '#F4F7FA';
+  }
+
+  function showLeadersModal(){
+    const timelineHtml = '<div style="display:flex; gap:3px; margin-top:10px;">' +
+      numberOneByWeekFull.map(w => {
+        const color = championColors[w.name] || '#5C7285';
+        const textColor = textColorFor(color);
+        return '<div style="flex:1; text-align:center;">' +
+          '<div style="height:34px; background:' + color + '; border-radius:3px; display:flex; align-items:center; justify-content:center;">' +
+          '<span style="font-family:Inter, sans-serif; font-weight:700; font-size:9.5px; color:' + textColor + ';">' + w.name.slice(0,3) + '</span></div>' +
+          '<div style="font-family:JetBrains Mono, monospace; font-size:8px; color:#8FA3B3; margin-top:3px;">' + w.week + '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+
+    const counts = {};
+    numberOneByWeekFull.forEach(w => counts[w.name] = (counts[w.name]||0)+1);
+    const maxCount = Math.max(...Object.values(counts));
+    const ranked = Object.keys(counts).sort((a,b) => counts[b]-counts[a]);
+    const barsHtml = ranked.map(n => {
+      const pct = (counts[n]/maxCount)*100;
+      const color = championColors[n] || '#5C7285';
+      const textColor = textColorFor(color);
+      return '<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">' +
+        '<div style="width:56px; font-family:Inter, sans-serif; font-weight:600; font-size:12px; text-align:right; color:#F4F7FA;">' + n + '</div>' +
+        '<div style="flex:1; background:#0B1D2E; border-radius:3px; overflow:hidden;">' +
+        '<div style="width:' + pct + '%; background:' + color + '; height:20px; display:flex; align-items:center; justify-content:flex-end; padding-right:6px;">' +
+        '<span style="font-family:JetBrains Mono, monospace; font-size:10px; color:' + textColor + '; font-weight:600;">' + counts[n] + '</span></div></div>' +
+      '</div>';
+    }).join('');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'll-overlay';
+    overlay.innerHTML = '<div class="ll-modal">' +
+      '<div class="ll-modal-title">Champions Timeline</div>' +
+      '<div style="font-family:JetBrains Mono, monospace; font-size:10px; color:#5C7285; margin-bottom:6px;">Who held #1, Week 4 through Week 14</div>' +
+      timelineHtml +
+      '<div class="ll-chart-label">Total Weeks at #1</div>' +
+      barsHtml +
+      '<button class="ll-modal-close">Close</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.querySelector('.ll-modal-close').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.remove(); });
+  }
+
+  function init(){
+    renderNextMatch();
+    renderParticipationBars('ll-participation', participationLast5);
+    document.getElementById('ll-participation-card').addEventListener('click', showParticipationModal);
+    renderDonut();
+    renderPulseStats();
+    renderLeadersTrack();
+    document.getElementById('ll-leaders-card').addEventListener('click', showLeadersModal);
+    renderTop5();
+    renderPills();
+    renderLadder(players);
+    document.getElementById('ll-search').addEventListener('input', (e) => { currentSearch = e.target.value.toLowerCase(); applyFilters(); });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
