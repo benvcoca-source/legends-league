@@ -200,7 +200,7 @@
   <div class="ll-header">
     <div>
       <div class="ll-title">Legends<span>League</span></div>
-      <div class="ll-subtitle">OAKVILLE PADEL ORGANIZATION &mdash; STANDINGS THROUGH WEEK 16</div>
+      <div class="ll-subtitle">OAKVILLE PADEL ORGANIZATION &mdash; STANDINGS THROUGH WEEK 17</div>
     </div>
   </div>
 
@@ -248,52 +248,53 @@
 
 <script>
 (function(){
-  const weekLabels = ['W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12','W13','W14','W15','W16'];
+  const weekLabels = ['W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12','W13','W14','W15','W16','W17'];
 
-  // Full season rank history, W4 through W16. null = not yet in league.
+  // Full season rank history, W4 through W17. null = not yet in league.
   const players = [
-    {name:"Max", hist:[4,1,2,1,2,1,1,2,2,2,1,2,3,3,3,3], status:"Grace", wins:4, weeksPlayed:12, weeksEligible:14},
-    {name:"Subhan", hist:[22,21,8,2,3,4,4,6,4,4,4,4,2,2,1,1], status:"At Risk", wins:3, weeksPlayed:7, weeksEligible:14},
-    {name:"Billy", hist:[21,20,1,3,1,2,2,1,1,1,2,3,4,4,4,4], status:"Grace", wins:3, weeksPlayed:11, weeksEligible:14},
-    {name:"Hussam", hist:[2,2,3,4,6,6,6,4,6,8,10,12,15,17,18,11], status:"Active", wins:1, weeksPlayed:2, weeksEligible:14},
-    {name:"Andreu", hist:[1,3,4,5,4,8,12,13,14,14,13,10,14,13,15,18], status:"Penalty", wins:1, weeksPlayed:4, weeksEligible:14},
-    {name:"George", hist:[17,16,20,6,5,5,5,7,11,13,15,17,19,21,21,22], status:"Penalty", wins:1, weeksPlayed:2, weeksEligible:14},
-    {name:"Ismail", hist:[3,4,5,7,9,9,8,5,7,5,5,5,7,9,11,14], status:"Penalty", wins:0, weeksPlayed:4, weeksEligible:14},
-    {name:"Roman", hist:[5,5,6,8,10,17,18,18,18,20,20,22,24,25,24,25], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:14},
-    {name:"Saad", hist:[6,6,7,9,12,18,19,19,19,21,21,23,25,26,25,26], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:14},
-    {name:"Asdaq", hist:[20,22,9,10,7,2,3,3,3,3,3,1,1,1,33,33], status:"Locked", wins:3, weeksPlayed:9, weeksEligible:14, locked:true},
-    {name:"Jon", hist:[18,19,10,11,8,7,7,11,9,9,8,8,11,11,10,13], status:"Penalty", wins:1, weeksPlayed:7, weeksEligible:14},
-    {name:"Ben", hist:[7,7,11,12,11,12,11,12,13,12,11,9,12,12,12,8], status:"Active", wins:2, weeksPlayed:12, weeksEligible:14},
-    {name:"Abdo", hist:[8,8,12,13,16,19,20,20,20,22,22,24,26,27,26,27], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:14},
-    {name:"Waqaas", hist:[9,9,13,14,15,15,16,16,16,17,18,18,18,16,14,12], status:"Active", wins:0, weeksPlayed:9, weeksEligible:14},
-    {name:"Liam", hist:[10,10,14,15,17,20,21,21,21,23,23,25,27,28,27,28], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:14},
-    {name:"Rodrigo", hist:[11,11,15,16,18,21,22,23,23,24,24,26,28,29,28,29], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:14},
-    {name:"Kian", hist:[12,12,16,17,19,22,23,24,24,25,25,27,29,30,29,30], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:14},
-    {name:"Emjay", hist:[13,13,17,18,20,23,24,25,25,26,26,29,31,31,30,31], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:14},
-    {name:"Peps", hist:[14,14,18,19,21,24,25,26,26,27,27,30,32,32,31,32], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:14},
-    {name:"M", hist:[15,15,19,20,22,25,26,27,27,28,28,31,33,33,32,35], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:14},
-    {name:"Joey", hist:[16,17,21,21,14,14,15,15,15,16,16,15,9,8,7,6], status:"Active", wins:0, weeksPlayed:8, weeksEligible:14},
-    {name:"Omar", hist:[null,null,null,22,23,16,17,17,17,19,19,21,23,24,23,24], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:13},
-    {name:"Ahmed Abouzeid", hist:[null,null,null,23,24,10,9,8,12,11,12,14,17,19,20,21], status:"Penalty", wins:1, weeksPlayed:4, weeksEligible:13},
-    {name:"Paul", hist:[19,18,22,24,13,13,13,9,5,6,6,6,5,5,2,2], status:"Active", wins:5, weeksPlayed:12, weeksEligible:14},
-    {name:"Mohammed", hist:[23,23,23,25,25,11,10,10,8,7,7,7,10,10,9,10], status:"Grace", wins:0, weeksPlayed:7, weeksEligible:14},
-    {name:"Fabio", hist:[null,null,null,26,26,26,27,22,22,18,17,20,21,20,16,15], status:"At Risk", wins:0, weeksPlayed:7, weeksEligible:13},
-    {name:"Ahmed Khalil", hist:[24,24,24,27,27,27,28,28,28,29,29,32,34,34,34,34], status:"Locked", wins:0, weeksPlayed:0, weeksEligible:14, locked:true},
-    {name:"Sham", hist:[null,null,null,null,null,null,14,14,10,10,9,11,13,15,17,17], status:"Active", wins:0, weeksPlayed:3, weeksEligible:10},
-    {name:"Mik", hist:[null,null,null,null,null,null,null,null,29,15,14,13,8,7,6,5], status:"Grace", wins:2, weeksPlayed:3, weeksEligible:8},
-    {name:"Raj", hist:[null,null,null,null,null,null,null,null,30,30,30,19,20,18,19,20], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:8},
-    {name:"Sean", hist:[null,null,null,null,null,null,null,null,null,null,32,16,6,6,5,7], status:"Penalty", wins:2, weeksPlayed:2, weeksEligible:6},
-    {name:"Oomesh", hist:[null,null,null,null,null,null,null,null,null,null,31,28,22,23,22,23], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:6},
-    {name:"Dina", hist:[null,null,null,null,null,null,null,null,null,null,null,33,30,22,8,9], status:"Active", wins:0, weeksPlayed:4, weeksEligible:5},
-    {name:"Ahsan", hist:[null,null,null,null,null,null,null,null,null,null,null,null,16,14,13,16], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:4},
-    {name:"Luis", hist:[null,null,null,null,null,null,null,null,null,null,null,null,null,35,35,19], status:"Active", wins:0, weeksPlayed:1, weeksEligible:2}
+    {name:"Max", hist:[4,1,2,1,2,1,1,2,2,2,1,2,3,3,3,3,3], status:"At Risk", wins:4, weeksPlayed:12, weeksEligible:15},
+    {name:"Subhan", hist:[22,21,8,2,3,4,4,6,4,4,4,4,2,2,1,1,1], status:"Active", wins:4, weeksPlayed:8, weeksEligible:15},
+    {name:"Billy", hist:[21,20,1,3,1,2,2,1,1,1,2,3,4,4,4,4,4], status:"At Risk", wins:3, weeksPlayed:11, weeksEligible:15},
+    {name:"Hussam", hist:[2,2,3,4,6,6,6,4,6,8,10,12,15,17,18,11,11], status:"Grace", wins:1, weeksPlayed:2, weeksEligible:15},
+    {name:"Andreu", hist:[1,3,4,5,4,8,12,13,14,14,13,10,14,13,15,18,19], status:"Penalty", wins:1, weeksPlayed:4, weeksEligible:15},
+    {name:"George", hist:[17,16,20,6,5,5,5,7,11,13,15,17,19,21,21,22,22], status:"Penalty", wins:1, weeksPlayed:2, weeksEligible:15},
+    {name:"Ismail", hist:[3,4,5,7,9,9,8,5,7,5,5,5,7,9,11,14,16], status:"Penalty", wins:0, weeksPlayed:4, weeksEligible:15},
+    {name:"Roman", hist:[5,5,6,8,10,17,18,18,18,20,20,22,24,25,24,25,25], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:15},
+    {name:"Saad", hist:[6,6,7,9,12,18,19,19,19,21,21,23,25,26,25,26,26], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:15},
+    {name:"Asdaq", hist:[20,22,9,10,7,2,3,3,3,3,3,1,1,1,33,33,33], status:"Locked", wins:3, weeksPlayed:9, weeksEligible:15, locked:true},
+    {name:"Jon", hist:[18,19,10,11,8,7,7,11,9,9,8,8,11,11,10,13,12], status:"Active", wins:1, weeksPlayed:8, weeksEligible:15},
+    {name:"Ben", hist:[7,7,11,12,11,12,11,12,13,12,11,9,12,12,12,8,7], status:"Active", wins:2, weeksPlayed:13, weeksEligible:15},
+    {name:"Abdo", hist:[8,8,12,13,16,19,20,20,20,22,22,24,26,27,26,27,27], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:15},
+    {name:"Waqaas", hist:[9,9,13,14,15,15,16,16,16,17,18,18,18,16,14,12,14], status:"Active", wins:0, weeksPlayed:10, weeksEligible:15},
+    {name:"Liam", hist:[10,10,14,15,17,20,21,21,21,23,23,25,27,28,27,28,28], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:15},
+    {name:"Rodrigo", hist:[11,11,15,16,18,21,22,23,23,24,24,26,28,29,28,29,29], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:15},
+    {name:"Kian", hist:[12,12,16,17,19,22,23,24,24,25,25,27,29,30,29,30,30], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:15},
+    {name:"Emjay", hist:[13,13,17,18,20,23,24,25,25,26,26,29,31,31,30,31,31], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:15},
+    {name:"Peps", hist:[14,14,18,19,21,24,25,26,26,27,27,30,32,32,31,32,32], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:15},
+    {name:"M", hist:[15,15,19,20,22,25,26,27,27,28,28,31,33,33,32,35,35], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:15},
+    {name:"Joey", hist:[16,17,21,21,14,14,15,15,15,16,16,15,9,8,7,6,6], status:"Active", wins:0, weeksPlayed:9, weeksEligible:15},
+    {name:"Omar", hist:[null,null,null,22,23,16,17,17,17,19,19,21,23,24,23,24,24], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:14},
+    {name:"Ahmed Abouzeid", hist:[null,null,null,23,24,10,9,8,12,11,12,14,17,19,20,21,21], status:"Penalty", wins:1, weeksPlayed:4, weeksEligible:14},
+    {name:"Paul", hist:[19,18,22,24,13,13,13,9,5,6,6,6,5,5,2,2,2], status:"Grace", wins:5, weeksPlayed:12, weeksEligible:15},
+    {name:"Mohammed", hist:[23,23,23,25,25,11,10,10,8,7,7,7,10,10,9,10,10], status:"Active", wins:1, weeksPlayed:8, weeksEligible:15},
+    {name:"Fabio", hist:[null,null,null,26,26,26,27,22,22,18,17,20,21,20,16,15,13], status:"Active", wins:0, weeksPlayed:8, weeksEligible:14},
+    {name:"Ahmed Khalil", hist:[24,24,24,27,27,27,28,28,28,29,29,32,34,34,34,34,34], status:"Locked", wins:0, weeksPlayed:0, weeksEligible:15, locked:true},
+    {name:"Sham", hist:[null,null,null,null,null,null,14,14,10,10,9,11,13,15,17,17,15], status:"Grace", wins:0, weeksPlayed:3, weeksEligible:11},
+    {name:"Mik", hist:[null,null,null,null,null,null,null,null,29,15,14,13,8,7,6,5,5], status:"At Risk", wins:2, weeksPlayed:3, weeksEligible:9},
+    {name:"Raj", hist:[null,null,null,null,null,null,null,null,30,30,30,19,20,18,19,20,20], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:9},
+    {name:"Sean", hist:[null,null,null,null,null,null,null,null,null,null,32,16,6,6,5,7,9], status:"Penalty", wins:2, weeksPlayed:2, weeksEligible:7},
+    {name:"Oomesh", hist:[null,null,null,null,null,null,null,null,null,null,31,28,22,23,22,23,23], status:"Penalty", wins:0, weeksPlayed:0, weeksEligible:7},
+    {name:"Dina", hist:[null,null,null,null,null,null,null,null,null,null,null,33,30,22,8,9,8], status:"Active", wins:0, weeksPlayed:5, weeksEligible:6},
+    {name:"Ahsan", hist:[null,null,null,null,null,null,null,null,null,null,null,null,16,14,13,16,18], status:"Penalty", wins:0, weeksPlayed:1, weeksEligible:5},
+    {name:"Luis", hist:[null,null,null,null,null,null,null,null,null,null,null,null,null,35,35,19,17], status:"Grace", wins:0, weeksPlayed:1, weeksEligible:3},
+    {name:"Amr", hist:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,36], status:"New", wins:0, weeksPlayed:0, weeksEligible:0}
   ];
 
   const participationFull = [
     {week:"W3", count:8},{week:"W4", count:12},{week:"W5", count:12},{week:"W6", count:8},
     {week:"W7", count:8},{week:"W8", count:8},{week:"W9", count:8},{week:"W10", count:8},
     {week:"W11", count:8},{week:"W12", count:12},{week:"W13", count:12},{week:"W14", count:8},
-    {week:"W15", count:8},{week:"W16", count:8}
+    {week:"W15", count:8},{week:"W16", count:8},{week:"W17", count:8}
   ];
   const participationLast5 = participationFull.slice(-5);
 
@@ -313,7 +314,8 @@
     {week:"W13", top3:["Asdaq","Subhan","Max"]},
     {week:"W14", top3:["Asdaq","Subhan","Max"]},
     {week:"W15", top3:["Subhan","Paul","Max"]},
-    {week:"W16", top3:["Subhan","Paul","Max"]}
+    {week:"W16", top3:["Subhan","Paul","Max"]},
+    {week:"W17", top3:["Subhan","Paul","Max"]}
   ];
   const top3ByWeek = top3ByWeekFull.slice(-5);
   const numberOneByWeek = top3ByWeek.map(w => ({week:w.week, name:w.top3[0]}));
@@ -328,22 +330,9 @@
   });
 
   const nextMatch = {
-    week: "Week 17",
-    resultsIn: false,
-    courts: [
-      {court: "Court A", players: [
-        {name:"Subhan", rank:1},
-        {name:"Joey", rank:6},
-        {name:"Ben", rank:8},
-        {name:"Dina", rank:9}
-      ]},
-      {court: "Court B", players: [
-        {name:"Mohammed", rank:10},
-        {name:"Waqaas", rank:12},
-        {name:"Jon", rank:13},
-        {name:"Fabio", rank:15}
-      ]}
-    ]
+    week: "Week 18",
+    resultsIn: true,
+    courts: []
   };
 
   function renderNextMatch(){
@@ -564,7 +553,7 @@
     overlay.className = 'll-overlay';
     overlay.innerHTML = '<div class="ll-modal">' +
       '<div class="ll-modal-title">Full Participation History</div>' +
-      '<div style="font-family:JetBrains Mono, monospace; font-size:10px; color:#5C7285; margin-bottom:10px;">Week 4 through Week 16</div>' +
+      '<div style="font-family:JetBrains Mono, monospace; font-size:10px; color:#5C7285; margin-bottom:10px;">Week 4 through Week 17</div>' +
       buildSparkline(participationFull.map(p=>p.count), participationFull.map(p=>p.week), {showVals:true, invertY:true}) +
       '<button class="ll-modal-close">Close</button>' +
       '</div>';
@@ -612,7 +601,7 @@
     overlay.className = 'll-overlay';
     overlay.innerHTML = '<div class="ll-modal">' +
       '<div class="ll-modal-title">Champions Timeline</div>' +
-      '<div style="font-family:JetBrains Mono, monospace; font-size:10px; color:#5C7285; margin-bottom:6px;">Who held #1, Week 4 through Week 16</div>' +
+      '<div style="font-family:JetBrains Mono, monospace; font-size:10px; color:#5C7285; margin-bottom:6px;">Who held #1, Week 4 through Week 17</div>' +
       timelineHtml +
       '<div class="ll-chart-label">Total Weeks at #1</div>' +
       barsHtml +
