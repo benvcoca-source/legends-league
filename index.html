@@ -414,10 +414,16 @@
     document.getElementById('ll-stat-avg').innerHTML = avgRounded;
     document.getElementById('ll-stat-thisweek').textContent = participationFull[participationFull.length-1].count;
 
+    // Biggest Climb excludes a player's debut-week jump (their first hist entry is always
+    // a non-played "New" week per the onboarding rule — that transition can move a lot
+    // purely from the waterfall mechanic, not from anything the player did on court).
+    // Confirmed 2026-08-2x: new/not-yet-played players never count for Biggest Climb.
     let bestAll = {name:null, jump:-Infinity, week:null};
     players.forEach(p => {
+      const firstIdx = p.hist.findIndex(v => v !== null);
       for(let i=1;i<p.hist.length;i++){
         if(p.hist[i]===null || p.hist[i-1]===null) continue;
+        if(i-1 === firstIdx) continue; // debut->2nd-week jump: player hadn't played yet
         const jump = p.hist[i-1] - p.hist[i];
         if(jump > bestAll.jump) bestAll = {name:p.name, jump, week:weekLabels[i]};
       }
@@ -427,6 +433,7 @@
 
     let bestLast = {name:null, jump:-Infinity};
     players.forEach(p => {
+      if(p.status !== 'Active') return; // only players who actually played this week
       const diff = p.prev - p.rank;
       if(diff > bestLast.jump) bestLast = {name:p.name, jump:diff};
     });
