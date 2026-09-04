@@ -90,6 +90,21 @@
     border-radius: 3px;
     text-transform: uppercase;
   }
+  .ll-medal-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .ll-medal-gold { background: rgba(242,169,0,0.22); color: #F2A900; border: 1px solid #F2A900; }
+  .ll-medal-silver { background: rgba(200,208,218,0.18); color: #C8D0DA; border: 1px solid #C8D0DA; }
+  .ll-medal-bronze { background: rgba(205,127,50,0.20); color: #CD8032; border: 1px solid #CD8032; }
+  .ll-medal-none { background: rgba(92,114,133,0.15); color: #5C7285; border: 1px solid #5C7285; }
+  .ll-crown { margin-right: 4px; }
   .ll-nextmatch-courts {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -353,13 +368,56 @@
     ]
   };
 
+  const lastResults = {
+    week: "Week 20",
+    courts: [
+      {court: "Court A", players: [
+        {name:"Ahmed Abouzeid", placement:1},
+        {name:"Ben", placement:2},
+        {name:"Fabio", placement:3},
+        {name:"Dina", placement:4}
+      ]},
+      {court: "Court B", players: [
+        {name:"Sham", placement:1},
+        {name:"George", placement:2},
+        {name:"Amr", placement:3},
+        {name:"Luis", placement:4}
+      ]}
+    ]
+  };
+
+  function medalClass(placement){
+    if(placement===1) return 'll-medal-gold';
+    if(placement===2) return 'll-medal-silver';
+    if(placement===3) return 'll-medal-bronze';
+    return 'll-medal-none';
+  }
+  function medalLabel(placement){
+    if(placement===1) return '1st';
+    if(placement===2) return '2nd';
+    if(placement===3) return '3rd';
+    return '4th';
+  }
+
   function renderNextMatch(){
     const section = document.querySelector('.ll-nextmatch');
-    if(nextMatch.resultsIn){
-      section.style.display = 'none';
+    section.style.display = '';
+    if(nextMatch.resultsIn && lastResults){
+      document.getElementById('ll-nextmatch-title').textContent = lastResults.week + ' Results';
+      document.getElementById('ll-nextmatch-status').textContent = 'Final';
+      document.getElementById('ll-nextmatch-courts').innerHTML = lastResults.courts.map(c =>
+        '<div class="ll-nextmatch-court">' +
+          '<div class="ll-nextmatch-court-title">' + c.court + '</div>' +
+          c.players.slice().sort((a,b)=>a.placement-b.placement).map(p =>
+            '<div class="ll-nextmatch-player"><span>' + (p.placement===1 ? '<span class="ll-crown">&#128081;</span>' : '') + p.name + '</span>' +
+            '<span class="ll-medal-badge ' + medalClass(p.placement) + '">' + medalLabel(p.placement) + '</span></div>'
+          ).join('') +
+        '</div>'
+      ).join('');
       return;
     }
     document.getElementById('ll-nextmatch-title').textContent = 'Next Match — ' + nextMatch.week;
+    document.getElementById('ll-nextmatch-status').textContent = 'Results Pending';
     document.getElementById('ll-nextmatch-courts').innerHTML = nextMatch.courts.map(c =>
       '<div class="ll-nextmatch-court">' +
         '<div class="ll-nextmatch-court-title">' + c.court + '</div>' +
@@ -490,7 +548,7 @@
     ).join('');
     const labelsHtml = showLabels ? hist.map((v,i) => {
       const x = pad + i * stepX;
-      return '<text x="' + x + '" y="' + (h+2) + '" fill="#5C7285" font-size="8" font-family='JetBrains Mono, monospace' text-anchor="middle">' + labels[i] + '</text>';
+      return '<text x="' + x + '" y="' + (h+2) + '" fill="#5C7285" font-size="8" font-family=\'JetBrains Mono, monospace\' text-anchor="middle">' + labels[i] + '</text>';
     }).join('') : '';
     return '<svg viewBox="0 0 ' + w + ' ' + (h + (showLabels?14:4)) + '" style="width:100%; height:auto;">' +
       '<polyline points="' + linePoints + '" fill="none" stroke="#1F8A70" stroke-width="2" />' + dots + labelsHtml + '</svg>';
