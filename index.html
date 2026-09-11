@@ -215,7 +215,7 @@
   <div class="ll-header">
     <div>
       <div class="ll-title">Legends<span>League</span></div>
-      <div class="ll-subtitle">OAKVILLE PADEL ORGANIZATION &mdash; STANDINGS THROUGH WEEK 20</div>
+      <div class="ll-subtitle">OAKVILLE PADEL ORGANIZATION &mdash; STANDINGS THROUGH WEEK 21</div>
     </div>
   </div>
 
@@ -265,7 +265,7 @@
 (function(){
   const weekLabels = ['W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12','W13','W14','W15','W16','W17','W18','W19','W20','W21'];
 
-  // Full season rank history, W4 through W20. null = not yet in league.
+  // Full season rank history, W4 through W21. null = not yet in league.
   const players = [
     {name:"Max", hist:[4,1,2,1,2,1,1,2,2,2,1,2,3,3,3,3,3,5,8,10,12], status:"Penalty", wins:4, weeksPlayed:12, weeksEligible:19},
     {name:"Subhan", hist:[22,21,8,2,3,4,4,6,4,4,4,4,2,2,1,1,1,1,1,1,1], status:"At Risk", wins:5, weeksPlayed:9, weeksEligible:19},
@@ -375,6 +375,10 @@
     ]
   };
 
+  // Most recent completed week's court results, in finish order (1st through 4th) per court.
+  // Update this alongside nextMatch every week once results are in — this is what renders
+  // as the podium view while nextMatch.resultsIn is true (i.e. until the following week's
+  // attendance/courts are confirmed and nextMatch is flipped back to resultsIn:false).
   const lastResults = {
     week: "Week 21",
     courts: [
@@ -560,7 +564,7 @@
     ).join('');
     const labelsHtml = showLabels ? hist.map((v,i) => {
       const x = pad + i * stepX;
-      return '<text x="' + x + '" y="' + (h+2) + '" fill="#5C7285" font-size="8" font-family=\'JetBrains Mono, monospace\' text-anchor="middle">' + labels[i] + '</text>';
+      return '<text x="' + x + '" y="' + (h+2) + '" fill="#5C7285" font-size="8" font-family='JetBrains Mono, monospace' text-anchor="middle">' + labels[i] + '</text>';
     }).join('') : '';
     return '<svg viewBox="0 0 ' + w + ' ' + (h + (showLabels?14:4)) + '" style="width:100%; height:auto;">' +
       '<polyline points="' + linePoints + '" fill="none" stroke="#1F8A70" stroke-width="2" />' + dots + labelsHtml + '</svg>';
