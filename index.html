@@ -564,7 +564,7 @@
     ).join('');
     const labelsHtml = showLabels ? hist.map((v,i) => {
       const x = pad + i * stepX;
-      return '<text x="' + x + '" y="' + (h+2) + '" fill="#5C7285" font-size="8" font-family='JetBrains Mono, monospace' text-anchor="middle">' + labels[i] + '</text>';
+      return '<text x="' + x + '" y="' + (h+2) + '" fill="#5C7285" font-size="8" font-family="JetBrains Mono, monospace" text-anchor="middle">' + labels[i] + '</text>';
     }).join('') : '';
     return '<svg viewBox="0 0 ' + w + ' ' + (h + (showLabels?14:4)) + '" style="width:100%; height:auto;">' +
       '<polyline points="' + linePoints + '" fill="none" stroke="#1F8A70" stroke-width="2" />' + dots + labelsHtml + '</svg>';
