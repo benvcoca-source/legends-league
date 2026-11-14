@@ -821,7 +821,7 @@
       '<textarea class="field" id="acustom" rows="5" style="width:100%;font-family:monospace;font-size:12px" placeholder="Paste courts JSON"></textarea><div class="arow"><button class="btn gold" id="aapprovecustom">Approve pasted courts</button></div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Week and deadline</div>' +
       '<div class="arow"><input class="field" id="aweek" style="width:90px" placeholder="Week" value="'+(live?live.week:'')+'"><input class="field" id="adate" style="width:160px" placeholder="YYYY-MM-DD" value="'+(live?live.date:'')+'"><button class="btn alt" id="asetweek">Start new week</button></div>' +
-      '<div class="note">Starting a new week clears the confirmed list and the deadline.</div>' +
+      '<div class="note">Using a NEW week number clears the confirmed list and the deadline. Re-using the current week number (to change its date) keeps the confirmed players and only clears the deadline.</div>' +
       '<div class="arow"><input class="field" id="adl" type="datetime-local" style="width:230px"><button class="btn alt" id="asetdl">Set deadline</button><button class="btn alt" id="aclrdl">No deadline</button></div>' +
       '<div class="note">'+(dl.text || 'No deadline set.')+'</div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Override a player</div><div class="arow"><select class="field" id="aplayer" style="width:220px">'+roster.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select><button class="btn" id="aconf">Confirm</button><button class="btn warn" id="aremove">Remove</button></div>' +
@@ -1293,7 +1293,7 @@
     else if(v === 'trends'){ html = viewTrends(); after = bindTrends; }
     else if(v === 'rules'){ html = viewRules(); }
     else if(v === 'tournament'){ html = viewTournament(); }
-    else if(v === 'admin'){ html = viewAdmin(); after = bindAdmin; }
+    else if(v === 'admin'){ html = viewAdmin(); after = function(){ bindAdmin(); if(adminKey()) loadState().then(function(){ if(currentView()==='admin'){ paint(viewAdmin()); bindAdmin(); } }); }; }
     else if(v === 'confirm'){ html = viewConfirm(); after = function(){ bindWeek(); if(Date.now() - lastLoad > 4000) loadState().then(refreshWeek); }; }
     else { html = viewResults(); after = function(){ if(Date.now() - lastLoad > 4000) loadState().then(function(){ if(currentView() === 'results'){ paint(viewResults()); updateChrome(); } }); }; }
     paint(html);
@@ -1323,7 +1323,7 @@
   loadPhotos();
   window.addEventListener('hashchange', route);
   setInterval(function(){ if(currentView()==='confirm' && !document.querySelector('.ov') && !document.hidden){ loadState().then(refreshWeek); } }, 20000);
-  loadState().then(function(){ if(currentView()==='confirm') refreshWeek(); updateChrome(); });
+  loadState().then(function(){ if(currentView()==='confirm') refreshWeek(); if(currentView()==='admin' && adminKey()){ paint(viewAdmin()); bindAdmin(); } updateChrome(); });
   document.getElementById('foot').textContent = 'Legends League · Oakville Padel Organization · Standings through Week ' + lastWeekNo;
   route();
 })();
