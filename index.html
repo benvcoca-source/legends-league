@@ -339,6 +339,13 @@
   .nchip.win{border-color:var(--lime);background:rgba(230,240,122,.1)}
   .nchip .dot{display:inline-block}
 
+  .sesstabs{display:flex;gap:10px;flex-wrap:wrap;margin:26px 0 0}
+  .sesstab{flex:1;min-width:200px;text-align:left;background:var(--card);border:1px solid var(--line2);border-radius:3px;padding:12px 16px;color:var(--text);cursor:pointer;font-family:var(--fb)}
+  .sesstab b{display:block;font-family:var(--fd);font-weight:400;font-size:24px;letter-spacing:.6px;text-transform:uppercase}
+  .sesstab i{display:block;font-style:normal;font-family:var(--fm);font-size:11px;color:var(--mute);margin-top:3px}
+  .sesstab.on{border-color:var(--lime);background:rgba(230,240,122,.08)}
+  .sesstab.on b{color:var(--lime)}
+  .nextbar.muted{border-color:var(--line2);background:transparent}
   .whytbl{border-collapse:collapse;width:100%;font-size:12px;min-width:640px}
   .whytbl th{font-family:var(--fm);font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
   .whytbl td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top;color:#d8e0d8}
@@ -536,6 +543,7 @@
     const p = d.split('-'); const dt = new Date(+p[0], +p[1]-1, +p[2]);
     return dt.toLocaleDateString('en-US', long ? {weekday:'long', month:'long', day:'numeric', year:'numeric'} : {month:'short', day:'numeric'});
   }
+  function fmtDay(d){ if(!d) return ''; const p = d.split('-'); const dt = new Date(+p[0], +p[1]-1, +p[2]); return dt.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'}); }
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function badgeClass(s){ return s==='Active'?'b-active':s==='Grace'?'b-grace':s==='At Risk'?'b-atrisk':s==='Penalty'?'b-penalty':s==='New'?'b-new':'b-locked'; }
   function statusLabel(s){ return s==='Locked' ? 'Inactive' : s; }
@@ -598,11 +606,11 @@
         return '<div class="court" style="border-top-color:'+col+'"><div class="court-t" style="color:'+col+'"><span>'+courtLabel(c.name)+'</span><span class="void">Void'+(c.voidReason?' &mdash; '+esc(c.voidReason):'')+'</span></div>' +
           c.players.map(p => '<div class="row"><span>'+nm(p.name)+'</span><span class="rkx">#'+p.pre+'</span></div>').join('') + '</div>';
       }
-      const list = mode==='results' ? c.players.slice().sort((a,b)=>a.res-b.res) : c.players.slice().sort((a,b)=>a.rank-b.rank);
+      const list = mode==='results' ? c.players.slice().sort((a,b)=>a.res-b.res) : c.players.slice().sort((a,b)=>(a.rank==null?999:a.rank)-(b.rank==null?999:b.rank));
       return '<div class="court" style="border-top-color:'+col+'"><div class="court-t" style="color:'+col+'"><span>'+courtLabel(c.name)+'</span></div>' +
         list.map(p => mode==='results'
           ? '<div class="row"><span>'+(p.res===1?'&#128081; ':'')+nm(p.name)+'</span>'+medal(p.res)+'</div>'
-          : '<div class="row"><span>'+nm(p.name)+'</span><span class="rkx">#'+p.rank+'</span></div>').join('') + '</div>';
+          : '<div class="row"><span>'+nm(p.name)+'</span><span class="rkx">'+(p.rank==null?'new':'#'+p.rank)+'</span></div>').join('') + '</div>';
     }).join('') + '</div>';
   }
 
@@ -610,6 +618,15 @@
   const API = 'https://n8n.132.145.131.193.nip.io/webhook/';
   const FORM_GAP = 1.5;                 // weighted-form gap needed for a form-based swap
   let live = null, liveErr = null, lastLoad = 0;
+  let rawState = null, selId = null, adminSid = null;
+  function applyState(s){
+    rawState = s;
+    if(!s || !s.sessions){ live = s; return; }
+    let cur = null; s.sessions.forEach(x => { if(x.id === selId) cur = x; });
+    if(!cur) cur = s.sessions[0] || null;
+    selId = cur ? cur.id : null;
+    live = Object.assign({}, s, cur ? {sid:cur.id, week:cur.week, date:cur.date, matchTime:cur.time, maxCourts:cur.maxCourts, confirmed:cur.confirmed, changes:cur.changes, plan:cur.plan, activity:cur.activity} : {sid:null, week:null, date:'', matchTime:'', maxCourts:0, confirmed:[], changes:{}, plan:null, activity:[]});
+  }
   function myName(){ try { return localStorage.getItem('ll_me') || ''; } catch(e){ return ''; } }
   function setMe(n){ try { if(n) localStorage.setItem('ll_me', n); else localStorage.removeItem('ll_me'); } catch(e){} }
   async function apiPost(o){
@@ -620,7 +637,7 @@
     try {
       const r = await fetch(API + 'legends-state', {cache:'no-store'});
       const j = await r.json();
-      if(j && j.ok){ live = j.state; liveErr = null; } else liveErr = 'bad response';
+      if(j && j.ok){ applyState(j.state); liveErr = null; } else liveErr = 'bad response';
     } catch(e){ liveErr = 'offline'; }
     lastLoad = Date.now();
   }
@@ -681,6 +698,10 @@
 
   /* what the page shows for the next session: live state, or the saved fallback */
   function weekInfo(){
+    if(live && live.plan && !live.plan.error){
+      const pl = live.plan;
+      return {confirmed:live.confirmed.slice(), playing:pl.playing||[], waitlist:pl.waitlist||[], status:'live', courts:pl.courts||[], proposal:pl.courts||[], notes:pl.notes||[], flags:pl.flags||[], banner:'', why:pl.why||[]};
+    }
     const all = live ? live.confirmed.slice() : nextMatch.attendees.slice();
     const mcap = (live && live.maxCourts) ? live.maxCourts : 0;
     let spots = all.length >= 4 ? Math.floor(all.length / 4) * 4 : all.length;
@@ -696,8 +717,10 @@
       if(a === b){ status = 'confirmed'; courts = snap.courts; notes = []; }
       else banner = 'The confirmed list has changed since Ben approved the courts. The courts below are provisional until he re-approves.';
     }
-    return {confirmed:all, playing:playing, waitlist:waitlist, status:status, courts:courts, notes:notes, banner:banner, why:prov.why};
+    return {confirmed:all, playing:playing, waitlist:waitlist, status:status, courts:courts, notes:notes, banner:banner, flags:[], why:prov.why};
   }
+  function stText(wi){ return wi.status==='live' ? 'Live' : wi.status==='confirmed' ? 'Confirmed' : 'Provisional'; }
+  function courtPill(wi){ return wi.status==='live' ? '<span class="pill2 conf">Live Court Assignments</span><span class="note" style="margin:0">Updates automatically as players confirm or cancel.</span>' : wi.status==='confirmed' ? '<span class="pill2 conf">Confirmed Courts</span>' : '<span class="pill2 prov">Provisional Court Assignments</span><span class="note" style="margin:0">Built automatically from the confirmed list.</span>'; }
   function deadlineInfo(){
     if(!live || !live.deadline) return {text:'', closed:false};
     const d = new Date(live.deadline); if(isNaN(d)) return {text:'', closed:false};
@@ -709,7 +732,13 @@
     return '<div class="act"><span>' + esc(a.player) + ' ' + (a.action==='confirm'?'confirmed':'cancelled') + '</span><span>' + new Date(a.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) + '</span></div>';
   }
 
+  function viewNoSession(){
+    const nx = live.next;
+    return hero({img:1, kick:'Oakville Padel Organization \u2014 confirmations', title:'Confirmations', accent:'Opening soon', sub: nx ? 'The next session is Week ' + nx.week + ', ' + fmtDate(nx.date,true) + ' at ' + esc(nx.time) + '. Confirmations open ' + fmtDate(nx.opensDate,true) + ' at 9:00 AM ET.' : 'No session is open for confirmations right now.', tiles:[]}) +
+      '<div class="pending">Nothing to confirm yet. Confirmations open automatically every Monday at 9:00 AM ET for the Thursday after next, so courts can be booked ahead of time.</div>';
+  }
   function viewConfirm(){
+    if(live && live.sessions && !live.sessions.length) return viewNoSession();
     const wi = weekInfo();
     const weekNo = live ? live.week : parseInt(nextMatch.week.replace(/\D/g,''),10);
     const dateStr = live ? live.date : nextMatch.date;
@@ -719,12 +748,15 @@
     const extra = wi.confirmed.filter(n => !byName[n]);
     const meIn = me && wi.confirmed.indexOf(me) >= 0;
     const off = !live || dl.closed;
-    const chip = wi.status === 'confirmed' ? '<span class="chip go">Confirmed courts</span>' : '<span class="chip wait">Provisional courts</span>';
+    const chip = '<span class="chip ' + (wi.status === 'provisional' ? 'wait' : 'go') + '">' + stText(wi) + ' courts</span>';
     let h = hero({img:1, kick:'Oakville Padel Organization \u2014 confirmations', title:'Week ' + weekNo, accent:'Confirmations', sub:(dateStr ? fmtDate(dateStr,true) + ' at ' + matchTime() : 'Date to be confirmed') + (dl.text ? '. ' + dl.text + '.' : '') + ' Confirm your spot and watch the courts build live.',
-      chip: wi.status === 'confirmed' ? '<span class="pc go">Confirmed courts</span>' : '<span class="pc">Provisional courts</span>',
-      tiles:[['Confirmed', wi.confirmed.length, 'players'], ['Playing', wi.playing.length, Math.floor(wi.playing.length/4) + ' courts' + (wi.waitlist.length ? ' \u00b7 ' + wi.waitlist.length + ' waitlisted' : '')], ['Court status', wi.status === 'confirmed' ? 'Confirmed' : 'Provisional', ''], ['Deadline', dl.text ? (dl.closed ? 'Closed' : 'Open') : 'Open', dl.text ? '' : 'no deadline set']]});
+      chip: '<span class="pc' + (wi.status === 'provisional' ? '' : ' go') + '">' + stText(wi) + ' courts</span>',
+      tiles:[['Confirmed', wi.confirmed.length, 'players'], ['Playing', wi.playing.length, Math.floor(wi.playing.length/4) + ' courts' + (wi.waitlist.length ? ' \u00b7 ' + wi.waitlist.length + ' waitlisted' : '')], ['Court status', stText(wi), ''], ['Deadline', dl.text ? (dl.closed ? 'Closed' : 'Open') : 'Open', dl.text ? '' : 'no deadline set']]});
     if(liveErr && !live) h += '<div class="banner bad" style="margin-top:12px">Live updates are unavailable right now, so this is the last saved list and confirmations are paused. Please try again shortly or message Ben.</div>';
 
+    if(rawState && rawState.sessions && rawState.sessions.length > 1){
+      h += '<div class="sesstabs">' + rawState.sessions.map(s => '<button class="sesstab' + (s.id === live.sid ? ' on' : '') + '" data-sid="' + s.id + '"><b>Week ' + s.week + '</b><i>' + fmtDay(s.date) + ' &middot; ' + esc(s.time) + ' &middot; ' + s.confirmed.length + ' confirmed</i></button>').join('') + '</div>';
+    }
     h += '<h2 class="sec">Your spot</h2><div class="card me"><div>' +
       (me ? '<div class="who">' + esc(me) + (meIn ? ' &middot; <span style="color:#7fd9ad">you are confirmed</span>' : ' &middot; <span style="color:var(--gold)">not confirmed</span>') + '</div><div class="sub"><a href="#" id="notme" style="color:var(--mute)">Not ' + esc(me) + '?</a></div>'
           : '<div class="who">Playing this week?</div><div class="sub">Pick your name to confirm or cancel your spot.</div>') +
@@ -747,10 +779,10 @@
     } else h += '<div class="pending">No confirmations yet.</div>';
 
     h += '<h2 class="sec">Court assignments <span class="hint">Week ' + weekNo + '</span></h2>';
-    h += '<div class="lblrow">' + (wi.status === 'confirmed' ? '<span class="pill2 conf">Confirmed Courts</span>' : '<span class="pill2 prov">Provisional Court Assignments</span><span class="note" style="margin:0">Built automatically from the confirmed list. Final once Ben approves.</span>') + '</div>';
+    h += '<div class="lblrow">' + courtPill(wi) + '</div>';
     if(wi.banner) h += '<div class="banner">' + wi.banner + '</div>';
     h += wi.courts.length ? courtCards(wi.courts, 'next') : '<div class="pending">Courts will appear as players confirm.</div>';
-    if(wi.status === 'provisional' && wi.notes.length) h += '<div class="notes">' + wi.notes.map(n => '<div>' + esc(n) + '</div>').join('') + '</div>';
+    if(wi.status !== 'confirmed' && wi.notes.length) h += '<div class="notes">' + wi.notes.map(n => '<div>' + esc(n) + '</div>').join('') + '</div>';
 
     return h;
   }
@@ -786,9 +818,9 @@
     ov.querySelector('#dgo').addEventListener('click', async () => {
       const b = ov.querySelector('#dgo'); b.disabled = true; b.textContent = 'Saving...';
       try {
-        const r = await apiPost({kind: isIn ? 'cancel' : 'confirm', player: name, week: weekNo});
-        if(r.ok){ live = r.state; liveErr = null; setMe(name); toast(isIn ? name + ' cancelled. Thanks for letting us know.' : name + ' confirmed. See you on court!'); }
-        else { if(r.state) live = r.state; toast(r.error || 'Something went wrong', true); }
+        const r = await apiPost({kind: isIn ? 'cancel' : 'confirm', player: name, week: weekNo, session: live ? live.sid : undefined});
+        if(r.ok){ applyState(r.state); liveErr = null; setMe(name); toast(isIn ? name + ' cancelled. Thanks for letting us know.' : name + ' confirmed. See you on court!'); }
+        else { if(r.state) applyState(r.state); toast(r.error || 'Something went wrong', true); }
       } catch(e){ toast('Could not reach the server. Please try again.', true); }
       ov.remove(); refreshWeek();
     });
@@ -805,36 +837,43 @@
 
   /* ---------- admin ---------- */
   function adminKey(){ try { return sessionStorage.getItem('ll_key') || ''; } catch(e){ return ''; } }
-  async function adminCall(o){ o.kind = 'admin'; o.key = adminKey(); const r = await apiPost(o); if(r.state) live = r.state; return r; }
+  async function adminCall(o){ o.kind = 'admin'; o.key = adminKey(); if(!o.session) o.session = adminSid || (live && live.sid) || undefined; const r = await apiPost(o); if(r.state) applyState(r.state); return r; }
   function viewAdmin(){
     if(!adminKey()) return '<h2 class="sec" style="margin-top:0">Admin</h2><div class="card" style="max-width:420px"><p class="muted" style="font-size:13px">Organizer access only.</p><input class="field" id="akey" type="password" placeholder="Admin key"><div class="arow"><button class="btn" id="aunlock">Unlock</button></div></div>';
-    const wi = weekInfo(); const dl = deadlineInfo();
+    if(rawState && rawState.sessions){
+      const ups0 = rawState.upcoming || [];
+      if(!adminSid || !ups0.some(u => u.id === adminSid)) adminSid = selId || ((ups0.filter(u => !u.cancelled)[0]) || {}).id || null;
+      if(rawState.sessions.some(x => x.id === adminSid) && selId !== adminSid){ selId = adminSid; applyState(rawState); }
+    }
+    const ups = (live && live.upcoming) || []; const au = ups.filter(u => u.id === adminSid)[0] || null;
+    const openIds = ((live && live.sessions) || []).map(x => x.id);
+    const adminOpen = openIds.indexOf(adminSid) >= 0;
+    const wi = weekInfo();
     const roster = (live && live.roster) ? live.roster.slice().sort((a,b)=>a.localeCompare(b)) : [];
-    return '<h2 class="sec" style="margin-top:0">Admin &middot; Week ' + (live?live.week:'?') + '</h2>' +
-      '<div class="card"><div class="lbl" style="margin-top:0">Courts</div><div class="lblrow">' + (wi.status==='confirmed' ? '<span class="pill2 conf">Confirmed Courts</span>' : '<span class="pill2 prov">Provisional Court Assignments</span>') + '</div>' +
+    return '<h2 class="sec" style="margin-top:0">Admin</h2>' +
+      '<div class="card"><div class="lbl" style="margin-top:0">Session</div><div class="arow"><select class="field" id="asess" style="width:340px">' + ups.map(u => '<option value="' + u.id + '"' + (u.id === adminSid ? ' selected' : '') + '>' + (u.cancelled ? 'Cancelled' : 'Week ' + u.week) + ' &middot; ' + fmtDay(u.date) + ' ' + esc(u.time) + (openIds.indexOf(u.id) >= 0 ? ' (open)' : u.cancelled ? '' : ' (opens ' + fmtDay(u.opensDate) + ' 9:00 AM ET)') + '</option>').join('') + '</select></div>' +
+      '<div class="arow"><input class="field" id="amdate" style="width:150px" placeholder="YYYY-MM-DD" value="' + (au ? au.date : '') + '"><input class="field" id="amtime" style="width:110px" placeholder="8:00 PM" value="' + esc(au ? au.time : '') + '"><button class="btn alt" id="amove">Move this session</button>' + (au && au.cancelled ? '<button class="btn" id="areinst">Reinstate session</button>' : '<button class="btn warn" id="acancelsess">Cancel this session</button>') + '</div>' +
+      '<div class="note">Sessions open automatically every Monday at 9:00 AM ET for the Thursday after next at 8:00 PM, so two sessions can be open at once. Moving changes the date or time and keeps the confirmations. Cancelling hides a session and renumbers the weeks after it.</div></div>' +
+      (adminOpen ? (
+      '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Courts' + (live && live.week ? ' &middot; Week ' + live.week : '') + '</div><div class="lblrow">' + courtPill(wi) + '</div>' +
       (wi.banner ? '<div class="banner">'+wi.banner+'</div>' : '') +
       (wi.courts.length ? courtCards(wi.courts,'next') : '<div class="pending">No courts yet.</div>') +
       (wi.notes.length ? '<div class="notes">'+wi.notes.map(n=>'<div>'+esc(n)+'</div>').join('')+'</div>' : '') +
-      '<div class="arow"><button class="btn gold" id="aapprove">Approve these courts</button><button class="btn alt" id="aunapprove">Re-open (back to provisional)</button></div></div>' +
+      '</div>' +
+      '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Flags for review</div>' + ((wi.flags||[]).length ? (wi.flags||[]).map(f => '<div class="banner" style="margin-top:8px">'+esc(f)+'</div>').join('') : '<div class="note">Nothing to flag. The engine placed everyone by the standard rules.</div>') + '<div class="note">Courts are placed automatically by the engine every time someone confirms or cancels. Anything unusual (a returning top-4 alumnus, a new player) shows here so you can check it.</div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Why these courts</div><div class="note" style="margin-bottom:8px">Rank court = where the player\u0027s rank alone puts them. Form = average of the last 2 played sessions, weighted by court (A 1-4, B 4-7, C 7-10), lower is better. A swap needs a gap of ' + FORM_GAP + ' or more.</div>' +
       '<div style="overflow-x:auto"><table class="whytbl"><tr><th>Player</th><th>Rank</th><th>Rank court</th><th>Final</th><th>Last 2 sessions</th><th>Form</th><th>Reason</th></tr>' +
-      (wi.why||[]).map(w => '<tr><td><b>'+esc(w.name)+'</b></td><td>#'+w.rank+'</td><td>'+w.base+'</td><td><b>'+w.court+'</b></td><td>'+esc(w.last2)+'</td><td>'+(w.form===null?'&ndash;':w.form)+'</td><td>'+esc(w.reason)+'</td></tr>').join('') + '</table></div></div>' +
-      '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Approve reviewed courts (from Claude)</div><div class="note">After the deadline, Claude applies the full rulebook to the confirmed list and gives you a block of courts to paste here. This replaces the automatic proposal.</div>' +
-      '<textarea class="field" id="acustom" rows="5" style="width:100%;font-family:monospace;font-size:12px" placeholder="Paste courts JSON"></textarea><div class="arow"><button class="btn gold" id="aapprovecustom">Approve pasted courts</button></div></div>' +
-      '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Week and deadline</div>' +
-      '<div class="arow"><input class="field" id="aweek" style="width:90px" placeholder="Week" value="'+(live?live.week:'')+'"><input class="field" id="adate" style="width:160px" placeholder="YYYY-MM-DD" value="'+(live?live.date:'')+'"><button class="btn alt" id="asetweek">Start new week</button></div>' +
-      '<div class="note">Using a NEW week number clears the confirmed list and the deadline. Re-using the current week number (to change its date) keeps the confirmed players and only clears the deadline.</div>' +
-      '<div class="arow"><input class="field" id="adl" type="datetime-local" style="width:230px"><button class="btn alt" id="asetdl">Set deadline</button><button class="btn alt" id="aclrdl">No deadline</button></div>' +
-      '<div class="note">'+(dl.text || 'No deadline set.')+'</div></div>' +
+      (wi.why||[]).map(w => '<tr><td><b>'+esc(w.name)+'</b></td><td>'+(w.rank==null?'new':'#'+w.rank)+'</td><td>'+w.base+'</td><td><b>'+w.court+'</b></td><td>'+esc(w.last2)+'</td><td>'+(w.form===null?'&ndash;':w.form)+'</td><td>'+esc(w.reason)+'</td></tr>').join('') + '</table></div></div>'
+      ) : '<div class="card" style="margin-top:12px"><div class="note">This session is not open for confirmations yet, so there are no courts to show. You can still move or cancel it, or set its max courts and time below.</div></div>') +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Match settings</div>' +
       '<div class="arow"><input class="field" id="amax" style="width:90px" placeholder="0" value="'+((live&&live.maxCourts)||'')+'"><button class="btn alt" id="asetmax">Set max courts</button></div>' +
-      '<div class="note">Courts available this week. 0 or blank = no limit. Confirmers beyond this many courts (4 players each) are waitlisted in order. Resets when a new week starts.</div>' +
+      '<div class="note">Courts available this week. 0 or blank = no limit. Confirmers beyond this many courts (4 players each) are waitlisted in order. Applies to the selected session only.</div>' +
       '<div class="arow"><input class="field" id="atime" style="width:140px" placeholder="8:00 PM" value="'+esc((live&&live.matchTime)||'')+'"><button class="btn alt" id="asettime">Set match time</button></div>' +
-      '<div class="note">Shown on the Confirmations page. Blank = the default 8:00 PM. Resets when a new week starts.</div></div>' +
+      '<div class="note">Shown on the Confirmations page. Blank = the default 8:00 PM. Applies to the selected session only.</div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Override a player</div><div class="arow"><select class="field" id="aplayer" style="width:220px">'+roster.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select><button class="btn" id="aconf">Confirm</button><button class="btn warn" id="aremove">Remove</button></div>' +
       '<div class="lbl">Remove a player from the roster</div><div class="arow"><select class="field" id="arostrm" style="width:220px">'+roster.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select><button class="btn warn" id="arostrmbtn">Remove from roster</button></div><div class="note">Also takes them off the confirmed list for this week. Their history stays in the standings.</div>' +
       '<div class="lbl">Add a new player to the roster</div><div class="arow"><input class="field" id="anew" style="width:220px" placeholder="Name"><button class="btn alt" id="aadd">Add to roster</button></div></div>' +
-      '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Recent activity</div>' + ((live&&live.activity||[]).map(a => '<div class="act"><span>'+esc(a.player)+' '+(a.action==='confirm'?'confirmed':'cancelled')+' ('+esc(a.src)+')</span><span>'+new Date(a.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</span></div>').join('') || '<div class="note">Nothing yet.</div>') + '</div>' +
+      '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Recent activity</div>' + ((live&&live.activity||[]).map(a => '<div class="act"><span>'+esc(a.player)+' '+(a.action==='confirm'?'confirmed':'cancelled')+' ('+esc(a.src==='seed'?'entered by Claude':a.src==='public'?'player':a.src)+')</span><span>'+new Date(a.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</span></div>').join('') || '<div class="note">Nothing yet.</div>') + '</div>' +
       '<div class="arow"><button class="btn alt" id="alock">Lock admin</button></div>';
   }
   function bindAdmin(){
@@ -847,21 +886,11 @@
       if(!r.ok){ try { sessionStorage.removeItem('ll_key'); } catch(e){} toast(r.error || 'Wrong key', true); return; }
       rerender();
     });
-    if(!g('aapprove')) return;
-    g('aapprove').addEventListener('click', () => run({op:'approve', courts: weekInfo().courts}, 'Courts approved. They now show as Confirmed Courts.'));
-    g('aapprovecustom').addEventListener('click', () => {
-      let c; try { c = JSON.parse(g('acustom').value); } catch(e){ toast('That is not valid JSON', true); return; }
-      if(c && !Array.isArray(c) && Array.isArray(c.courts)) c = c.courts;
-      const ok = Array.isArray(c) && c.length && c.every(x => x && x.name && Array.isArray(x.players) && x.players.every(p => p && p.name));
-      if(!ok){ toast('Courts must be a list of {name, players:[{name, rank}]}', true); return; }
-      const have = c.reduce((a,x)=>a.concat(x.players.map(p=>p.name)),[]).sort().join('|'), want = weekInfo().playing.slice().sort().join('|');
-      if(have !== want){ toast('These courts do not match the current playing list. Check the names.', true); return; }
-      run({op:'approve', courts:c}, 'Reviewed courts approved. They now show as Confirmed Courts.');
-    });
-    g('aunapprove').addEventListener('click', () => run({op:'unapprove'}, 'Courts re-opened as provisional.'));
-    g('asetweek').addEventListener('click', () => { if(confirm('Start a new week? This clears the confirmed list.')) run({op:'setWeek', week:g('aweek').value.trim(), date:g('adate').value.trim()}, 'New week started.'); });
-    g('asetdl').addEventListener('click', () => { const v = g('adl').value; if(!v){ toast('Pick a date and time', true); return; } run({op:'setDeadline', deadline:new Date(v).toISOString()}, 'Deadline set.'); });
-    g('aclrdl').addEventListener('click', () => run({op:'setDeadline', deadline:''}, 'Deadline cleared.'));
+    if(!g('asess')) return;
+    g('asess').addEventListener('change', e => { adminSid = e.target.value; rerender(); });
+    g('amove').addEventListener('click', () => { const d = g('amdate').value.trim(); const tm = g('amtime').value.trim(); if(!d){ toast('Enter a date (YYYY-MM-DD)', true); return; } run({op:'moveSession', session:adminSid, date:d, time:tm}, 'Session updated.'); });
+    if(g('acancelsess')) g('acancelsess').addEventListener('click', () => { if(confirm('Cancel this session? It disappears for players and later weeks renumber.')) run({op:'cancelSession', session:adminSid, value:true}, 'Session cancelled.'); });
+    if(g('areinst')) g('areinst').addEventListener('click', () => run({op:'cancelSession', session:adminSid, value:false}, 'Session reinstated.'));
     g('aconf').addEventListener('click', () => run({op:'override', player:g('aplayer').value, action:'confirm'}, 'Player confirmed.'));
     g('aremove').addEventListener('click', () => run({op:'override', player:g('aplayer').value, action:'cancel'}, 'Player removed.'));
     g('asetmax').addEventListener('click', () => { const v = g('amax').value.trim() || '0'; run({op:'setMaxCourts', value:v}, Number(v) > 0 ? 'Max courts set to ' + v + '.' : 'Court limit removed.'); });
@@ -958,8 +987,13 @@
       chip:'<a class="pc" href="#/weeks/' + wk.n + '">Full week &rarr;</a>',
       tiles:[['Players', s.names.length, (s.prev ? (delta>0?'+':'') + delta + ' vs W' + s.prev.n : '')], ['Courts', courts, courts*4 + ' spots'], ['Court winners', s.winners.length, s.winners.map(w=>w.name).join(', ')], ['Biggest climb', s.climbers[0] ? '+' + s.climbers[0].d : '–', s.climbers[0] ? s.climbers[0].name : '']]});
 
-    const wi = weekInfo(); const nextNo = live ? live.week : parseInt(nextMatch.week.replace(/\D/g,''),10);
-    h += '<a class="nextbar" href="#/confirm"><span><b>Week ' + nextNo + ' confirmations ' + (deadlineInfo().closed ? 'are closed' : 'are open') + '</b><i>' + wi.confirmed.length + ' players confirmed &middot; ' + (wi.status==='confirmed' ? 'courts confirmed' : 'courts provisional') + '</i></span><span class="go2">Open &rarr;</span></a>';
+    if(rawState && rawState.sessions){
+      rawState.sessions.forEach(s => { h += '<a class="nextbar" href="#/confirm" data-sid="' + s.id + '"><span><b>Week ' + s.week + ' &middot; ' + fmtDay(s.date) + ' at ' + esc(s.time) + ' &middot; confirmations are open</b><i>' + s.confirmed.length + ' players confirmed &middot; courts update live</i></span><span class="go2">Open &rarr;</span></a>'; });
+      if(!rawState.sessions.length && rawState.next) h += '<div class="nextbar muted"><span><b>Next confirmations open ' + fmtDay(rawState.next.opensDate) + ' at 9:00 AM ET</b><i>Week ' + rawState.next.week + ' &middot; ' + fmtDay(rawState.next.date) + ' at ' + esc(rawState.next.time) + '</i></span></div>';
+    } else {
+      const wi = weekInfo(); const nextNo = live ? live.week : parseInt(nextMatch.week.replace(/\D/g,''),10);
+      h += '<a class="nextbar" href="#/confirm"><span><b>Week ' + nextNo + ' &middot; ' + fmtDay(live ? live.date : nextMatch.date) + ' confirmations are open</b><i>' + wi.confirmed.length + ' players confirmed &middot; ' + (wi.status==='live' ? 'courts update live' : wi.status==='confirmed' ? 'courts confirmed' : 'courts provisional') + '</i></span><span class="go2">Open &rarr;</span></a>';
+    }
 
     h += '<h2 class="sec">Court results <span class="hint">rank before &rarr; after &middot; tap a name for the profile</span></h2>' + weekCourtsHtml(wk);
 
@@ -1101,7 +1135,7 @@
 
     h += '<div class="wh"><h3>Week ' + wk.n + '</h3><span class="mono muted" style="font-size:12px">' + (wk.date ? fmtDate(wk.date,true) : 'Early season (date not recorded)') + '</span></div>';
     if(wk.upcoming){
-      const wi2 = weekInfo(); h += '<div class="lblrow">' + (wi2.status==='confirmed' ? '<span class="pill2 conf">Confirmed Courts</span>' : '<span class="pill2 prov">Provisional Court Assignments</span>') + '</div>' + (wi2.courts.length ? courtCards(wi2.courts,'next') : '<div class="pending">Courts will appear as players confirm.</div>');
+      const wi2 = weekInfo(); h += '<div class="lblrow">' + courtPill(wi2) + '</div>' + (wi2.courts.length ? courtCards(wi2.courts,'next') : '<div class="pending">Courts will appear as players confirm.</div>');
       return h;
     }
     const total = wk.courts.reduce((a,c)=>a+c.players.length,0);
@@ -1324,7 +1358,7 @@
   }
   function updateChrome(){
     const wi = weekInfo(); const wkNo = live ? live.week : parseInt(nextMatch.week.replace(/\D/g,''),10);
-    const chip = document.getElementById('navchip'); if(chip) chip.innerHTML = '<i></i>Week ' + wkNo + ' \u00b7 ' + wi.confirmed.length + ' confirmed';
+    const chip = document.getElementById('navchip'); if(chip){ const ns = (rawState && rawState.sessions) ? rawState.sessions.length : 1; chip.innerHTML = !wkNo ? '<i></i>Confirmations' : ns > 1 ? '<i></i>' + ns + ' sessions open' : '<i></i>Week ' + wkNo + ' \u00b7 ' + wi.confirmed.length + ' confirmed'; }
     const b = document.getElementById('brandwk'); if(b) b.textContent = '/ WK ' + lastWeekNo;
   }
   function bindWeeks(sel){
@@ -1337,6 +1371,8 @@
     const on = document.querySelector('#strip .wc.on'); if(on) on.scrollIntoView({inline:'center', block:'nearest'});
   }
   document.addEventListener('click', e => {
+    const sb = e.target.closest('[data-sid]');
+    if(sb && rawState && rawState.sessions){ selId = sb.getAttribute('data-sid'); applyState(rawState); if(sb.classList.contains('sesstab')){ refreshWeek(); updateChrome(); return; } }
     const gw = e.target.closest('[data-gw]'); if(gw){ location.hash = '#/weeks/'+gw.getAttribute('data-gw'); return; }
     const t = e.target.closest('[data-p]');
     if(t && !t.closest('.ov')) openPlayer(t.getAttribute('data-p'));
