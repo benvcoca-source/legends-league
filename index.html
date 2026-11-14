@@ -339,6 +339,9 @@
   .nchip.win{border-color:var(--lime);background:rgba(230,240,122,.1)}
   .nchip .dot{display:inline-block}
 
+  .whytbl{border-collapse:collapse;width:100%;font-size:12px;min-width:640px}
+  .whytbl th{font-family:var(--fm);font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  .whytbl td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top;color:#d8e0d8}
   /* tournament content */
   .tstage{position:relative;padding-top:26px}
   .tstage .tn{font-family:var(--fd);font-size:54px;line-height:.8;color:var(--lime);opacity:.9;margin-bottom:6px}
@@ -637,10 +640,13 @@
     const moved = {};
     const lastR = n => { const l = lastFinishes(n,1)[0]; return l || null; };
     const wf = n => { const f = weightedForm(n); return f ? f.avg : null; };
+    const moveWhy = {};
     function swap(ka, a, b, why){
       const ia = cs[ka].indexOf(a), ib = cs[ka+1].indexOf(b);
       cs[ka][ia] = b; cs[ka+1][ib] = a; moved[a.name] = moved[b.name] = true;
       notes.push(why);
+      moveWhy[a.name] = 'Moves down to ' + courtLetter(ka+1) + ': ' + why;
+      moveWhy[b.name] = 'Moves up to ' + courtLetter(ka) + ': ' + why;
     }
     for(let k=0;k<cs.length-1;k++){
       const above = cs[k].slice(), below = cs[k+1].slice();
@@ -663,7 +669,14 @@
     if(att.length > 0 && att.length < 4) notes.push('At least 4 confirmed players are needed to make a court (' + att.length + ' so far).');
     if(!att.length) notes.push('No confirmed players yet.');
     const courts = cs.map((c,i) => ({name: courtLetter(i), players: c.slice().sort((a,b)=>a.rank-b.rank).map(p => ({name:p.name, rank:p.rank}))}));
-    return {courts:courts, notes:notes};
+    const base = {}; for(let i=0;i<att.length;i++) base[att[i].name] = courtLetter(Math.floor(i/4));
+    const why = [];
+    courts.forEach(c => c.players.forEach(p => {
+      const l2 = lastFinishes(p.name, 2).slice().reverse().map(e => 'W' + e.n + ' ' + ord(e.res) + ' on ' + courtLabel(e.court).replace('Court ','')).join(' \u00b7 ');
+      const f = wf(p.name);
+      why.push({name:p.name, rank:p.rank, base:base[p.name], court:c.name, last2:l2 || 'no results yet', form:f===null?null:f.toFixed(1), reason: moveWhy[p.name] || (base[p.name]===c.name ? 'Stays on its rank-based court (no swap triggered).' : '')});
+    }));
+    return {courts:courts, notes:notes, why:why};
   }
 
   /* what the page shows for the next session: live state, or the saved fallback */
@@ -681,7 +694,7 @@
       if(a === b){ status = 'confirmed'; courts = snap.courts; notes = []; }
       else banner = 'The confirmed list has changed since Ben approved the courts. The courts below are provisional until he re-approves.';
     }
-    return {confirmed:all, playing:playing, waitlist:waitlist, status:status, courts:courts, notes:notes, banner:banner};
+    return {confirmed:all, playing:playing, waitlist:waitlist, status:status, courts:courts, notes:notes, banner:banner, why:prov.why};
   }
   function deadlineInfo(){
     if(!live || !live.deadline) return {text:'', closed:false};
@@ -801,6 +814,11 @@
       (wi.courts.length ? courtCards(wi.courts,'next') : '<div class="pending">No courts yet.</div>') +
       (wi.notes.length ? '<div class="notes">'+wi.notes.map(n=>'<div>'+esc(n)+'</div>').join('')+'</div>' : '') +
       '<div class="arow"><button class="btn gold" id="aapprove">Approve these courts</button><button class="btn alt" id="aunapprove">Re-open (back to provisional)</button></div></div>' +
+      '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Why these courts</div><div class="note" style="margin-bottom:8px">Rank court = where the player\u0027s rank alone puts them. Form = average of the last 2 played sessions, weighted by court (A 1-4, B 4-7, C 7-10), lower is better. A swap needs a gap of ' + FORM_GAP + ' or more.</div>' +
+      '<div style="overflow-x:auto"><table class="whytbl"><tr><th>Player</th><th>Rank</th><th>Rank court</th><th>Final</th><th>Last 2 sessions</th><th>Form</th><th>Reason</th></tr>' +
+      (wi.why||[]).map(w => '<tr><td><b>'+esc(w.name)+'</b></td><td>#'+w.rank+'</td><td>'+w.base+'</td><td><b>'+w.court+'</b></td><td>'+esc(w.last2)+'</td><td>'+(w.form===null?'&ndash;':w.form)+'</td><td>'+esc(w.reason)+'</td></tr>').join('') + '</table></div></div>' +
+      '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Approve reviewed courts (from Claude)</div><div class="note">After the deadline, Claude applies the full rulebook to the confirmed list and gives you a block of courts to paste here. This replaces the automatic proposal.</div>' +
+      '<textarea class="field" id="acustom" rows="5" style="width:100%;font-family:monospace;font-size:12px" placeholder="Paste courts JSON"></textarea><div class="arow"><button class="btn gold" id="aapprovecustom">Approve pasted courts</button></div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Week and deadline</div>' +
       '<div class="arow"><input class="field" id="aweek" style="width:90px" placeholder="Week" value="'+(live?live.week:'')+'"><input class="field" id="adate" style="width:160px" placeholder="YYYY-MM-DD" value="'+(live?live.date:'')+'"><button class="btn alt" id="asetweek">Start new week</button></div>' +
       '<div class="note">Starting a new week clears the confirmed list and the deadline.</div>' +
@@ -823,6 +841,15 @@
     });
     if(!g('aapprove')) return;
     g('aapprove').addEventListener('click', () => run({op:'approve', courts: weekInfo().courts}, 'Courts approved. They now show as Confirmed Courts.'));
+    g('aapprovecustom').addEventListener('click', () => {
+      let c; try { c = JSON.parse(g('acustom').value); } catch(e){ toast('That is not valid JSON', true); return; }
+      if(c && !Array.isArray(c) && Array.isArray(c.courts)) c = c.courts;
+      const ok = Array.isArray(c) && c.length && c.every(x => x && x.name && Array.isArray(x.players) && x.players.every(p => p && p.name));
+      if(!ok){ toast('Courts must be a list of {name, players:[{name, rank}]}', true); return; }
+      const have = c.reduce((a,x)=>a.concat(x.players.map(p=>p.name)),[]).sort().join('|'), want = weekInfo().playing.slice().sort().join('|');
+      if(have !== want){ toast('These courts do not match the current playing list. Check the names.', true); return; }
+      run({op:'approve', courts:c}, 'Reviewed courts approved. They now show as Confirmed Courts.');
+    });
     g('aunapprove').addEventListener('click', () => run({op:'unapprove'}, 'Courts re-opened as provisional.'));
     g('asetweek').addEventListener('click', () => { if(confirm('Start a new week? This clears the confirmed list.')) run({op:'setWeek', week:g('aweek').value.trim(), date:g('adate').value.trim()}, 'New week started.'); });
     g('asetdl').addEventListener('click', () => { const v = g('adl').value; if(!v){ toast('Pick a date and time', true); return; } run({op:'setDeadline', deadline:new Date(v).toISOString()}, 'Deadline set.'); });
