@@ -530,7 +530,7 @@
 
   function courtLabel(name){ return /^[0-9]+$/.test(String(name)) ? 'Court ' + name : 'Court ' + String(name).trim(); }
   function ord(n){ return n===1?'1st':n===2?'2nd':n===3?'3rd':n+'th'; }
-  const MATCH_TIME = '8:00 PM'; /* default kick-off time shown on Confirmations; change only when Ben says so */
+  function matchTime(){ return (live && live.matchTime) || '8:00 PM'; } /* default 8:00 PM; Ben can change it per week in Admin */
   function fmtDate(d, long){
     if(!d) return null;
     const p = d.split('-'); const dt = new Date(+p[0], +p[1]-1, +p[2]);
@@ -682,7 +682,9 @@
   /* what the page shows for the next session: live state, or the saved fallback */
   function weekInfo(){
     const all = live ? live.confirmed.slice() : nextMatch.attendees.slice();
-    const spots = all.length >= 4 ? Math.floor(all.length / 4) * 4 : all.length;
+    const mcap = (live && live.maxCourts) ? live.maxCourts : 0;
+    let spots = all.length >= 4 ? Math.floor(all.length / 4) * 4 : all.length;
+    if(mcap > 0) spots = Math.min(spots, mcap * 4);
     const playing = all.slice(0, spots), waitlist = all.slice(spots);
     const prov = buildCourts(playing);
     let status = 'provisional', courts = prov.courts, notes = prov.notes, banner = '';
@@ -718,7 +720,7 @@
     const meIn = me && wi.confirmed.indexOf(me) >= 0;
     const off = !live || dl.closed;
     const chip = wi.status === 'confirmed' ? '<span class="chip go">Confirmed courts</span>' : '<span class="chip wait">Provisional courts</span>';
-    let h = hero({img:1, kick:'Oakville Padel Organization \u2014 confirmations', title:'Week ' + weekNo, accent:'Confirmations', sub:(dateStr ? fmtDate(dateStr,true) + ' at ' + MATCH_TIME : 'Date to be confirmed') + (dl.text ? '. ' + dl.text + '.' : '') + ' Confirm your spot and watch the courts build live.',
+    let h = hero({img:1, kick:'Oakville Padel Organization \u2014 confirmations', title:'Week ' + weekNo, accent:'Confirmations', sub:(dateStr ? fmtDate(dateStr,true) + ' at ' + matchTime() : 'Date to be confirmed') + (dl.text ? '. ' + dl.text + '.' : '') + ' Confirm your spot and watch the courts build live.',
       chip: wi.status === 'confirmed' ? '<span class="pc go">Confirmed courts</span>' : '<span class="pc">Provisional courts</span>',
       tiles:[['Confirmed', wi.confirmed.length, 'players'], ['Playing', wi.playing.length, Math.floor(wi.playing.length/4) + ' courts' + (wi.waitlist.length ? ' \u00b7 ' + wi.waitlist.length + ' waitlisted' : '')], ['Court status', wi.status === 'confirmed' ? 'Confirmed' : 'Provisional', ''], ['Deadline', dl.text ? (dl.closed ? 'Closed' : 'Open') : 'Open', dl.text ? '' : 'no deadline set']]});
     if(liveErr && !live) h += '<div class="banner bad" style="margin-top:12px">Live updates are unavailable right now, so this is the last saved list and confirmations are paused. Please try again shortly or message Ben.</div>';
@@ -741,7 +743,7 @@
           (p ? '<span class="rkx">rank ' + p.rank + '</span><span class="dot" style="background:' + statusColors[p.status] + '" title="' + statusLabel(p.status) + '"></span>' : '<span class="tag in">new</span>') +
           (wait ? '<span class="tag wl">Waitlist</span>' : '') + '</li>';
       }).join('') + '</ol>';
-      h += '<div class="note">Spots fill in order of confirmation, in groups of four players per court. Anyone beyond the last full court is on the waitlist. Dot colour = current status.</div>';
+      h += '<div class="note">Spots fill in order of confirmation, in groups of four players per court. ' + (live && live.maxCourts ? 'Only ' + live.maxCourts + ' court' + (live.maxCourts>1?'s are':' is') + ' available this week, so ' : '') + 'anyone beyond the last full court is on the waitlist. Dot colour = current status.</div>';
     } else h += '<div class="pending">No confirmations yet.</div>';
 
     h += '<h2 class="sec">Court assignments <span class="hint">Week ' + weekNo + '</span></h2>';
@@ -779,7 +781,7 @@
     const weekNo = live ? live.week : null;
     const ov = openDialog(isIn
       ? '<h3>Cancel your spot?</h3><p>You are about to cancel <b>' + esc(name) + '</b> for Week ' + weekNo + '. A missed week moves your status along (Active, Grace, At Risk, Penalty). Please only continue if this is you.</p><div class="mbtns"><button class="btn alt" id="dk">Keep my spot</button><button class="btn warn" id="dgo">Yes, cancel my spot</button></div>'
-      : '<h3>Confirm your spot?</h3><p>Confirm <b>' + esc(name) + '</b> as playing in Week ' + weekNo + '. ' + (function(){ const n1 = wi.confirmed.length + 1; return (n1 > 4 && n1 > Math.floor(n1/4)*4) ? 'Courts are full, so you will join the <b>waitlist</b> (position ' + n1 + ') and move up automatically if someone cancels. ' : ''; })() + 'Please only continue if this is you.</p><div class="mbtns"><button class="btn alt" id="dk">Back</button><button class="btn" id="dgo">Yes, I am playing</button></div>');
+      : '<h3>Confirm your spot?</h3><p>Confirm <b>' + esc(name) + '</b> as playing in Week ' + weekNo + '. ' + (function(){ const n1 = wi.confirmed.length + 1; let sp1 = n1 >= 4 ? Math.floor(n1/4)*4 : n1; if(live && live.maxCourts) sp1 = Math.min(sp1, live.maxCourts*4); return (n1 > sp1) ? 'Courts are full, so you will join the <b>waitlist</b> (position ' + n1 + ') and move up automatically if someone cancels. ' : ''; })() + 'Please only continue if this is you.</p><div class="mbtns"><button class="btn alt" id="dk">Back</button><button class="btn" id="dgo">Yes, I am playing</button></div>');
     ov.querySelector('#dk').addEventListener('click', () => ov.remove());
     ov.querySelector('#dgo').addEventListener('click', async () => {
       const b = ov.querySelector('#dgo'); b.disabled = true; b.textContent = 'Saving...';
@@ -824,7 +826,13 @@
       '<div class="note">Using a NEW week number clears the confirmed list and the deadline. Re-using the current week number (to change its date) keeps the confirmed players and only clears the deadline.</div>' +
       '<div class="arow"><input class="field" id="adl" type="datetime-local" style="width:230px"><button class="btn alt" id="asetdl">Set deadline</button><button class="btn alt" id="aclrdl">No deadline</button></div>' +
       '<div class="note">'+(dl.text || 'No deadline set.')+'</div></div>' +
+      '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Match settings</div>' +
+      '<div class="arow"><input class="field" id="amax" style="width:90px" placeholder="0" value="'+((live&&live.maxCourts)||'')+'"><button class="btn alt" id="asetmax">Set max courts</button></div>' +
+      '<div class="note">Courts available this week. 0 or blank = no limit. Confirmers beyond this many courts (4 players each) are waitlisted in order. Resets when a new week starts.</div>' +
+      '<div class="arow"><input class="field" id="atime" style="width:140px" placeholder="8:00 PM" value="'+esc((live&&live.matchTime)||'')+'"><button class="btn alt" id="asettime">Set match time</button></div>' +
+      '<div class="note">Shown on the Confirmations page. Blank = the default 8:00 PM. Resets when a new week starts.</div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Override a player</div><div class="arow"><select class="field" id="aplayer" style="width:220px">'+roster.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select><button class="btn" id="aconf">Confirm</button><button class="btn warn" id="aremove">Remove</button></div>' +
+      '<div class="lbl">Remove a player from the roster</div><div class="arow"><select class="field" id="arostrm" style="width:220px">'+roster.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select><button class="btn warn" id="arostrmbtn">Remove from roster</button></div><div class="note">Also takes them off the confirmed list for this week. Their history stays in the standings.</div>' +
       '<div class="lbl">Add a new player to the roster</div><div class="arow"><input class="field" id="anew" style="width:220px" placeholder="Name"><button class="btn alt" id="aadd">Add to roster</button></div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Recent activity</div>' + ((live&&live.activity||[]).map(a => '<div class="act"><span>'+esc(a.player)+' '+(a.action==='confirm'?'confirmed':'cancelled')+' ('+esc(a.src)+')</span><span>'+new Date(a.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</span></div>').join('') || '<div class="note">Nothing yet.</div>') + '</div>' +
       '<div class="arow"><button class="btn alt" id="alock">Lock admin</button></div>';
@@ -856,6 +864,19 @@
     g('aclrdl').addEventListener('click', () => run({op:'setDeadline', deadline:''}, 'Deadline cleared.'));
     g('aconf').addEventListener('click', () => run({op:'override', player:g('aplayer').value, action:'confirm'}, 'Player confirmed.'));
     g('aremove').addEventListener('click', () => run({op:'override', player:g('aplayer').value, action:'cancel'}, 'Player removed.'));
+    g('asetmax').addEventListener('click', () => { const v = g('amax').value.trim() || '0'; run({op:'setMaxCourts', value:v}, Number(v) > 0 ? 'Max courts set to ' + v + '.' : 'Court limit removed.'); });
+    g('asettime').addEventListener('click', () => run({op:'setMatchTime', value:g('atime').value.trim()}, 'Match time updated.'));
+    g('arostrmbtn').addEventListener('click', async () => {
+      const n = g('arostrm').value; if(!n) return;
+      if(!confirm('Remove ' + n + ' from the roster? They will no longer be able to confirm.')) return;
+      try {
+        if(live && live.confirmed.indexOf(n) >= 0) await adminCall({op:'override', player:n, action:'cancel'});
+        const r0 = ((live&&live.roster)||[]).filter(x => x !== n);
+        const r = await adminCall({op:'setRoster', roster:r0});
+        toast(r.ok ? n + ' removed from the roster.' : (r.error || 'Failed'), !r.ok);
+      } catch(e){ toast('Could not reach the server', true); }
+      rerender();
+    });
     g('aadd').addEventListener('click', () => { const n = g('anew').value.trim(); if(!n) return; const r0 = (live&&live.roster||[]).slice(); if(r0.indexOf(n)<0) r0.push(n); run({op:'setRoster', roster:r0}, n + ' added to the roster.'); });
     g('alock').addEventListener('click', () => { try { sessionStorage.removeItem('ll_key'); } catch(e){} rerender(); });
   }
