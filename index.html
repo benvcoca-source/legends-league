@@ -871,6 +871,7 @@
       '<div class="arow"><input class="field" id="atime" style="width:140px" placeholder="8:00 PM" value="'+esc((live&&live.matchTime)||'')+'"><button class="btn alt" id="asettime">Set match time</button></div>' +
       '<div class="note">Shown on the Confirmations page. Blank = the default 8:00 PM. Applies to the selected session only.</div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Override a player</div><div class="arow"><select class="field" id="aplayer" style="width:220px">'+roster.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select><button class="btn" id="aconf">Confirm</button><button class="btn warn" id="aremove">Remove</button></div>' +
+      '<div class="arow"><button class="btn warn" id="aclearall">Clear all confirmations for this session</button></div>' +
       '<div class="lbl">Remove a player from the roster</div><div class="arow"><select class="field" id="arostrm" style="width:220px">'+roster.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select><button class="btn warn" id="arostrmbtn">Remove from roster</button></div><div class="note">Also takes them off the confirmed list for this week. Their history stays in the standings.</div>' +
       '<div class="lbl">Add a new player to the roster</div><div class="arow"><input class="field" id="anew" style="width:220px" placeholder="Name"><button class="btn alt" id="aadd">Add to roster</button></div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Recent activity</div>' + ((live&&live.activity||[]).map(a => '<div class="act"><span>'+esc(a.player)+' '+(a.action==='confirm'?'confirmed':'cancelled')+' ('+esc(a.src==='seed'?'entered by Claude':a.src==='public'?'player':a.src)+')</span><span>'+new Date(a.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</span></div>').join('') || '<div class="note">Nothing yet.</div>') + '</div>' +
@@ -893,6 +894,15 @@
     if(g('areinst')) g('areinst').addEventListener('click', () => run({op:'cancelSession', session:adminSid, value:false}, 'Session reinstated.'));
     g('aconf').addEventListener('click', () => run({op:'override', player:g('aplayer').value, action:'confirm'}, 'Player confirmed.'));
     g('aremove').addEventListener('click', () => run({op:'override', player:g('aplayer').value, action:'cancel'}, 'Player removed.'));
+    g('aclearall').addEventListener('click', async () => {
+      const names = ((live && live.confirmed) || []).slice();
+      if(!names.length){ toast('Nobody is confirmed for this session', true); return; }
+      if(!confirm('Remove all ' + names.length + ' confirmed players from Week ' + live.week + '? Players will need to confirm again.')) return;
+      let ok = 0;
+      for(const n of names){ try { const r = await adminCall({op:'override', player:n, action:'cancel'}); if(r.ok) ok++; } catch(e){} }
+      toast(ok + ' of ' + names.length + ' players removed.', ok !== names.length);
+      rerender();
+    });
     g('asetmax').addEventListener('click', () => { const v = g('amax').value.trim() || '0'; run({op:'setMaxCourts', value:v}, Number(v) > 0 ? 'Max courts set to ' + v + '.' : 'Court limit removed.'); });
     g('asettime').addEventListener('click', () => run({op:'setMatchTime', value:g('atime').value.trim()}, 'Match time updated.'));
     g('arostrmbtn').addEventListener('click', async () => {
