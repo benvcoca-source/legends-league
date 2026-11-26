@@ -94,6 +94,33 @@
   @keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(216,50,43,.7)}70%{box-shadow:0 0 0 9px rgba(216,50,43,0)}100%{box-shadow:0 0 0 0 rgba(216,50,43,0)}}
   .nextbar.recbar{border-color:#D8322B;background:rgba(216,50,43,.12)}
   .nextbar.recbar .pc{background:#D8322B;color:#fff;border-color:#D8322B;animation:recblink 1.2s infinite}
+  .ccbanner{text-align:center;margin:26px 0 14px}
+  .ccbanner h2{font-family:var(--fd,'Bebas Neue'),'Bebas Neue',Impact,sans-serif!important;text-transform:uppercase;font-weight:400;font-size:60px;letter-spacing:3px;margin:2px 0;color:var(--lime);line-height:1}
+  .ccbanner p{color:var(--mute);margin:4px 0 0;font-size:14px}
+  .ccconf{font-size:26px;letter-spacing:10px;animation:ccbob 2.4s ease-in-out infinite}
+  @keyframes ccbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .ccgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:10px}
+  .cc{position:relative;text-align:center;padding:22px 16px 20px;border:1px solid var(--line2);border-radius:14px;background:radial-gradient(120% 90% at 50% 0%,rgba(230,240,122,.14),rgba(10,23,18,0) 60%),var(--card);overflow:hidden}
+  .cc.c0{border-color:var(--lime);box-shadow:0 0 0 1px rgba(230,240,122,.25),0 10px 32px rgba(230,240,122,.12)}
+  .cc.c1{border-color:#6FA8FF;background:radial-gradient(120% 90% at 50% 0%,rgba(111,168,255,.15),rgba(10,23,18,0) 60%),var(--card)}
+  .cc.c2{border-color:#E8895A;background:radial-gradient(120% 90% at 50% 0%,rgba(232,137,90,.16),rgba(10,23,18,0) 60%),var(--card)}
+  .ccrib{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--lime)}
+  .cc.c1 .ccrib{color:#6FA8FF}.cc.c2 .ccrib{color:#E8895A}
+  .cctro{font-size:54px;margin:8px 0 2px;animation:ccbob 2.8s ease-in-out infinite;filter:drop-shadow(0 4px 12px rgba(230,240,122,.3))}
+  .ccname{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:1.5px;line-height:1.05;color:#fff;cursor:pointer}
+  .ccrank{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 8px;font-family:'IBM Plex Mono',monospace}
+  .ccfrom{color:var(--mute);font-size:18px}.ccarr{color:var(--mute)}.ccto{font-size:26px;font-weight:600;color:var(--lime)}
+  .ccmv{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;letter-spacing:.8px}
+  .ccmv.up{background:rgba(95,191,143,.2);color:#7fd9ad}.ccmv.dn{background:rgba(224,96,63,.2);color:#ff8d73}
+  .ccmv.hold,.ccmv.new{background:rgba(230,240,122,.14);color:var(--lime)}
+  .ccbeat{font-size:12.5px;color:var(--mute)}
+  .ccmwrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:14px}
+  .ccmoves{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--card)}
+  .ccmoves h4{margin:0 0 8px;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;font-weight:400}
+  .ccmoves div{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px}
+  .ccmoves div span{font-family:'IBM Plex Mono',monospace;color:var(--mute)}
+  .ccmoves.up h4{color:#7fd9ad}.ccmoves.dn h4{color:#ff8d73}
+  @media (prefers-reduced-motion:reduce){.ccconf,.cctro,#navrec,#navrec b,.nextbar.recbar .pc{animation:none}}
   .rsum{display:flex;gap:10px;align-items:center;padding:7px 0;font-size:14px}
   .rg{display:grid;grid-template-columns:minmax(0,1fr) 46px 92px;gap:6px;align-items:center}
   .rg.n2{grid-template-columns:minmax(0,1fr) 46px}
@@ -558,6 +585,30 @@
     ]
   };
 
+  /* Processed-week overlay: once the server has processed a week, its result is layered on top of the baked data so every page (standings, trends, weeks) shows it. */
+  (function(){
+    try {
+      const lp = JSON.parse(localStorage.getItem('ll_lp') || 'null');
+      if(!lp || !lp.rows || lp.week <= weekLabels.length) return;
+      const lab = 'W' + lp.week; const prior = weekLabels.length;
+      for(let wi = weeks.length - 1; wi >= 0; wi--){ if(weeks[wi].upcoming || weeks[wi].n === lp.week) weeks.splice(wi, 1); }
+      weekLabels.push(lab);
+      const by = {}; players.forEach(p => by[p.name] = p);
+      lp.rows.forEach(r => {
+        let p = by[r.name];
+        if(!p){ p = {name:r.name, hist:new Array(prior).fill(null), status:r.status, wins:0, weeksPlayed:0, weeksEligible:0}; players.push(p); by[r.name] = p; }
+        while(p.hist.length < prior) p.hist.push(null);
+        p.hist.push(r.rank); p.status = r.status; p.weeksEligible = (p.weeksEligible || 0) + 1;
+        if(r.place){ p.weeksPlayed = (p.weeksPlayed || 0) + 1; if(r.place === 1) p.wins = (p.wins || 0) + 1; }
+      });
+      const cs = {}; lp.rows.forEach(r => { if(r.court){ (cs[r.court] = cs[r.court] || []).push({name:r.name, pre:r.prev == null ? r.rank : r.prev, res:r.place}); } });
+      weeks.push({n:lp.week, date:lp.date, courts:Object.keys(cs).sort().map(k => ({name:k, players:cs[k].sort((a,b)=>a.res-b.res)}))});
+      participationFull.push({week:lab, count:lp.played});
+      top3ByWeekFull.push({week:lab, top3:lp.rows.slice(0,3).map(r => r.name)});
+    } catch(e){}
+  })();
+
+
   /* =========================================================
      DERIVED
      ========================================================= */
@@ -668,6 +719,11 @@
   let rawState = null, selId = null, adminSid = null;
   function applyState(s){
     rawState = s;
+    try {
+      const lpn = s && s.lastProcessed; const cached = JSON.parse(localStorage.getItem('ll_lp') || 'null');
+      if(lpn && lpn.week > weekLabels.length){ localStorage.setItem('ll_lp', JSON.stringify(lpn)); if(sessionStorage.getItem('ll_lp_rl') !== String(lpn.week)){ sessionStorage.setItem('ll_lp_rl', String(lpn.week)); location.reload(); return; } }
+      else if(s && !lpn && cached){ localStorage.removeItem('ll_lp'); if(sessionStorage.getItem('ll_lp_rl')){ sessionStorage.removeItem('ll_lp_rl'); location.reload(); return; } }
+    } catch(e){}
     if(!s || !s.sessions){ live = s; return; }
     let cur = null; s.sessions.forEach(x => { if(x.id === selId) cur = x; });
     if(!cur) cur = s.sessions[0] || null;
@@ -997,18 +1053,68 @@
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Recent activity</div>' + ((live&&live.activity||[]).map(a => '<div class="act"><span>'+esc(a.player)+' '+(a.action==='confirm'?'confirmed':'cancelled')+' ('+esc(a.src==='seed'?'entered by Claude':a.src==='public'?'player':a.src)+')</span><span>'+new Date(a.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</span></div>').join('') || '<div class="note">Nothing yet.</div>') + '</div>' +
       '<div class="arow"><button class="btn alt" id="alock">Lock admin</button></div>';
   }
+  function waDraft(lp){
+    const mvT = (p, r) => p == null ? '(new)' : p === r ? '(holds #' + r + ')' : '(#' + p + ' \u2192 #' + r + (p > r ? ' \u2B06\uFE0F' + (p - r) : ' \u2B07\uFE0F' + (r - p)) + ')';
+    const d = lp.date ? fmtDate(lp.date, false) : '';
+    const L = [];
+    L.push('\uD83C\uDFD3 *LEGENDS LEAGUE \u2014 WEEK ' + lp.week + ' RESULTS* \uD83C\uDFC6');
+    L.push('\uD83D\uDCC5 ' + d + ' \u00B7 ' + lp.played + ' players \u00B7 ' + lp.winners.length + ' courts');
+    L.push('');
+    L.push('\uD83E\uDD47 *Court winners*');
+    lp.winners.forEach(w => L.push('\u2022 League Court ' + w.court + ': *' + w.name + '* ' + mvT(w.prev, w.rank)));
+    L.push('');
+    L.push('\uD83D\uDD1D *Top 5 now*');
+    L.push(lp.top.map((t, i) => (i + 1) + '. ' + t.name).join('  '));
+    if(lp.risers.length){ L.push(''); L.push('\uD83D\uDE80 *Biggest climbs*'); lp.risers.slice(0, 3).forEach(x => L.push('\u2022 ' + x.name + ' #' + x.prev + ' \u2192 #' + x.rank + ' \u2B06\uFE0F' + (x.prev - x.rank))); }
+    if(lp.penalized.length){ L.push(''); L.push('\u26A0\uFE0F *Penalty drops*: ' + lp.penalized.join(', ') + ' (play to reset!)'); }
+    L.push('');
+    L.push('\uD83D\uDCCA Full standings \u0026 trends: https://benvcoca-source.github.io/legends-league/');
+    L.push('\uD83D\uDCE3 Confirm for next week on the site (opens Mondays 9 AM) and record your court result Thursday night when the red tab lights up!');
+    return L.join('\n');
+  }
+  function adminProcessHtml(){
+    const lp = rawState && rawState.lastProcessed; const rs = (rawState && rawState.results) || [];
+    let h = '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Results processing</div>';
+    const ready = rs.filter(r => r.allIn);
+    h += ready.length ? ready.map(r => '<div class="arow"><span style="font-size:13.5px">Week ' + r.week + ' has results for every court.</span><button class="btn alt aproc" data-s="' + r.id + '" data-m="process">Preview processing</button><button class="btn aproc" data-s="' + r.id + '" data-m="applyProcess">Apply and publish</button></div>').join('') : '<div class="note" style="margin-top:0">Processing unlocks when every League Court has results.</div>';
+    h += '<div class="arow"><span style="font-size:13.5px">Auto-process when all courts are in: <b>' + (rawState && rawState.autoProcess ? 'ON' : 'OFF') + '</b></span><button class="btn alt" id="aautotog">Turn ' + (rawState && rawState.autoProcess ? 'off' : 'on') + '</button></div>';
+    h += '<div class="note">Preview shows exactly what would change and why. Apply publishes the new ladder, the standings, the champion cards and the WhatsApp draft. Auto-processing is OFF until you turn it on.</div>';
+    if(lp){
+      h += '<div class="lbl">Last processed: Week ' + lp.week + '</div><div class="arow"><button class="btn alt" id="aviewlast">View reasons</button><button class="btn warn" id="arevert">Revert last processing</button></div>' +
+        '<div class="lbl">WhatsApp draft</div><textarea class="field" id="awa" style="width:100%;height:230px;font-size:13px">' + esc(waDraft(lp)) + '</textarea><div class="arow"><button class="btn" id="awacopy">Copy for WhatsApp</button></div>';
+    }
+    return h + '</div>';
+  }
+  function showProcess(sum, flags, applyId){
+    const rows = sum.rows.map(r => '<tr><td>' + r.rank + '</td><td><b>' + esc(r.name) + '</b></td><td>' + (r.prev == null ? 'new' : r.prev) + '</td><td>' + esc(r.trend) + '</td><td>' + esc(statusLabel(r.status)) + '</td><td>' + esc(r.detail) + '</td></tr>').join('');
+    const ov = openDialog('<h3>Week ' + sum.week + ' processing</h3>' + ((flags && flags.length) ? flags.map(f => '<div class="banner" style="margin:6px 0">' + esc(f) + '</div>').join('') : '') + '<div style="overflow:auto;max-height:55vh"><table class="whytbl"><tr><th>#</th><th>Player</th><th>Prev</th><th>Move</th><th>Status</th><th>Why</th></tr>' + rows + '</table></div><div class="mbtns" style="margin-top:14px"><button class="btn alt" id="pclose">Close</button>' + (applyId ? '<button class="btn" id="papply">Apply and publish</button>' : '') + '</div>');
+    ov.querySelector('.mbox').style.width = 'min(920px,100%)';
+    ov.querySelector('#pclose').addEventListener('click', () => ov.remove());
+    if(applyId) ov.querySelector('#papply').addEventListener('click', async () => { const r = await adminCall({op:'applyProcess', session:applyId}); toast(r.ok ? 'Published.' : (r.error || 'Failed'), !r.ok); ov.remove(); });
+  }
   function adminResultsHtml(){
     const rs = (rawState && rawState.results) || [];
-    if(!rs.length) return '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Game-day results</div><div class="note" style="margin-top:0">Nothing is waiting for results. They open on game day at 8:00 PM ET.</div></div>';
+    if(!rs.length) return '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Game-day results</div><div class="note" style="margin-top:0">Nothing is waiting for results. They open on game day at 8:00 PM ET.</div></div>' + adminProcessHtml();
     return rs.map(r => '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Game-day results &middot; Week ' + r.week + ' &middot; ' + (r.open ? 'open' : 'opens ' + to12(r.opensAt) + ' ET') + (r.allIn ? ' &middot; all courts in' : '') + '</div>' +
       r.courts.map(c => '<div class="act"><span><b>League Court ' + c.name + '</b> &middot; ' + (c.done ? 'recorded by ' + esc(c.by) + (c.admin ? ' (admin)' : '') + ': ' + Object.keys(c.places).sort((a,b)=>c.places[a]-c.places[b]).map(n => c.places[n] + '. ' + esc(n)).join(', ') : 'not recorded') +
         (c.conflicts && c.conflicts.length ? '<br><span style="color:var(--gold)">Conflicting entries: ' + c.conflicts.map(x => esc(x.by)).join(', ') + '</span>' : '') + '</span>' +
-        (c.done ? '<button class="btn warn rclear" data-s="' + r.id + '" data-c="' + c.name + '" style="padding:6px 10px;font-size:12px">Clear</button>' : '') + '</div>').join('') + '</div>').join('');
+        (c.done ? '<button class="btn warn rclear" data-s="' + r.id + '" data-c="' + c.name + '" style="padding:6px 10px;font-size:12px">Clear</button>' : '') + '</div>').join('') + '</div>').join('') + adminProcessHtml();
   }
   function bindAdmin(){
     const g = id => document.getElementById(id);
     const rerender = () => { paint(viewAdmin()); bindAdmin(); };
     const run = async (o, okMsg) => { try { const r = await adminCall(o); toast(r.ok ? okMsg : (r.error || 'Failed'), !r.ok); } catch(e){ toast('Could not reach the server', true); } rerender(); };
+    document.querySelectorAll('.aproc').forEach(b => b.addEventListener('click', async () => {
+      const m = b.getAttribute('data-m'), sid = b.getAttribute('data-s');
+      if(m === 'applyProcess' && !confirm('Apply this week\u0027s results and publish the new standings?')) return;
+      let r; try { r = await adminCall({op:m, session:sid}); } catch(e){ toast('Could not reach the server', true); return; }
+      if(!r.ok){ toast(r.error || 'Failed', true); return; }
+      if(m === 'process') showProcess(r.preview, r.flags, sid); else toast('Published.');
+    }));
+    if(g('aautotog')) g('aautotog').addEventListener('click', () => run({op:'setAutoProcess', value:!(rawState && rawState.autoProcess)}, 'Auto-processing updated.'));
+    if(g('aviewlast')) g('aviewlast').addEventListener('click', () => showProcess(rawState.lastProcessed, rawState.lastProcessed.flags, null));
+    if(g('arevert')) g('arevert').addEventListener('click', () => { if(confirm('Revert the last processing? The ladder goes back to before that week.')) run({op:'revertProcess'}, 'Reverted.'); });
+    if(g('awacopy')) g('awacopy').addEventListener('click', async () => { const t = g('awa').value; try { await navigator.clipboard.writeText(t); toast('Copied. Paste it in WhatsApp.'); } catch(e){ g('awa').select(); document.execCommand('copy'); toast('Copied.'); } });
     document.querySelectorAll('.rclear').forEach(b => b.addEventListener('click', () => { if(confirm('Clear the recorded results for League Court ' + b.getAttribute('data-c') + '? Players will be able to record it again.')) run({op:'clearResult', session:b.getAttribute('data-s'), court:b.getAttribute('data-c')}, 'Court cleared.'); }));
     if(g('aunlock')) g('aunlock').addEventListener('click', async () => {
       try { sessionStorage.setItem('ll_key', g('akey').value.trim()); } catch(e){}
@@ -1117,6 +1223,22 @@
     for(let k = top3ByWeekFull.length-1; k>=0; k--){ if(top3ByWeekFull[k].top3[0] === holder) reign++; else break; }
     return {names:names, prevCount:prevNames.length, prev:prev, winners:winners, climbers:climbers, drops:drops, upset:upset, firstWin:firstWin, backToBack:backToBack, debuts:debuts, returning:returning, missed:missed, statusCount:statusCount, topNow:topNow, holder:holder, reign:reign, movers:movers, all:all};
   }
+  function celebrationHtml(wk){
+    const lp = rawState && rawState.lastProcessed; if(!lp || lp.week !== wk.n) return '';
+    const mv = (a, b) => b == null ? '<span class="ccmv new">NEW</span>' : a === b ? '<span class="ccmv hold">HOLDS #' + b + '</span>' : a < b ? '<span class="ccmv up">&#9650; ' + (b - a) + '</span>' : '<span class="ccmv dn">&#9660; ' + (a - b) + '</span>';
+    let h = '<div class="ccbanner"><div class="ccconf">&#127881; &#10024; &#127942; &#10024; &#127881;</div><h2>Congratulations</h2><p>Week ' + lp.week + ' is in the books. Here are your League Court winners.</p></div><div class="ccgrid">';
+    lp.winners.forEach((w, i) => {
+      const beat = w.players.slice(1).map(esc).join(', ');
+      h += '<div class="cc c' + (i % 3) + '"><div class="ccrib">League Court ' + esc(w.court) + ' winner</div><div class="cctro">&#127942;</div><div class="ccname" data-p="' + esc(w.name) + '">' + esc(w.name) + '</div>' +
+        '<div class="ccrank"><span class="ccfrom">' + (w.prev == null ? 'NEW' : '#' + w.prev) + '</span><span class="ccarr">&rarr;</span><span class="ccto">#' + w.rank + '</span>' + mv(w.rank, w.prev) + '</div>' +
+        '<div class="ccbeat">Finished ahead of ' + beat + '</div></div>';
+    });
+    h += '</div>';
+    const rl = (arr, cls, ic) => arr.length ? '<div class="ccmoves ' + cls + '"><h4>' + ic + '</h4>' + arr.slice(0, 3).map(x => '<div><b>' + esc(x.name) + '</b><span>#' + x.prev + ' &rarr; #' + x.rank + '</span></div>').join('') + '</div>' : '';
+    const ms = rl(lp.risers, 'up', '&#128640; Biggest climbs') + rl(lp.fallers, 'dn', '&#128315; Biggest drops');
+    if(ms) h += '<div class="ccmwrap">' + ms + '</div>';
+    return h;
+  }
   function viewResults(){
     const wk = playedWeeks[playedWeeks.length-1];
     const s = resultsStats(wk);
@@ -1126,6 +1248,7 @@
       chip:'<a class="pc" href="#/weeks/' + wk.n + '">Full week &rarr;</a>',
       tiles:[['Players', s.names.length, (s.prev ? (delta>0?'+':'') + delta + ' vs W' + s.prev.n : '')], ['Courts', courts, courts*4 + ' spots'], ['Court winners', s.winners.length, s.winners.map(w=>w.name).join(', ')], ['Biggest climb', s.climbers[0] ? '+' + s.climbers[0].d : '–', s.climbers[0] ? s.climbers[0].name : '']]});
 
+    h += celebrationHtml(wk);
     openResults().forEach(r => { h += '<a class="nextbar recbar" href="#/record"><span><b>Week ' + r.week + ' &middot; results are open</b><i>' + r.courts.filter(c => c.done).length + ' of ' + r.courts.length + ' courts recorded &middot; tap to record your League Court</i></span><span class="pc go">Record results &rarr;</span></a>'; });
     if(rawState && rawState.sessions){
       rawState.sessions.forEach(s => { h += '<a class="nextbar" href="#/confirm" data-sid="' + s.id + '"><span><b>Week ' + s.week + ' &middot; ' + fmtDay(s.date) + ' at ' + esc(s.time) + ' &middot; confirmations are open</b><i>' + s.confirmed.length + ' players confirmed &middot; courts update live</i></span><span class="go2">Open &rarr;</span></a>'; });
