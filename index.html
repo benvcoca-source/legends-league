@@ -77,6 +77,23 @@
   .plc.on.p2{background:rgba(200,208,218,.16);color:#C8D0DA;border-color:#C8D0DA}
   .plc.on.p3{background:rgba(205,127,50,.2);color:#CD8032;border-color:#CD8032}
   .plc.on.p4{background:rgba(92,114,133,.2);color:var(--mute);border-color:var(--dim)}
+  .prh{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mute);padding:6px 0 10px;border-top:0}
+  .prow.tap{cursor:pointer;flex-wrap:nowrap;padding:16px 4px;-webkit-tap-highlight-color:transparent}
+  .prow.tap:hover{background:rgba(230,240,122,.05)}
+  .rslot{min-width:110px;text-align:right}
+  .rslot .empty{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);border:1px dashed var(--line2);border-radius:8px;padding:8px 14px;display:inline-block}
+  .stk{display:inline-block;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;padding:4px 18px;border-radius:8px;border:1px solid}
+  .stk.p1{background:rgba(230,240,122,.22);color:var(--gold);border-color:var(--gold)}
+  .stk.p2{background:rgba(200,208,218,.16);color:#C8D0DA;border-color:#C8D0DA}
+  .stk.p3{background:rgba(205,127,50,.2);color:#CD8032;border-color:#CD8032}
+  .stk.p4{background:rgba(92,114,133,.2);color:var(--mute);border-color:var(--dim)}
+  @keyframes recblink{0%,100%{opacity:1}50%{opacity:.25}}
+  #navrec{color:#fff!important;background:#D8322B;border-radius:6px;border-bottom-color:transparent!important;font-weight:600;box-shadow:0 0 0 0 rgba(216,50,43,.7);animation:recpulse 1.6s infinite}
+  #navrec.on{background:#D8322B;color:#fff!important;border-bottom-color:transparent}
+  #navrec b{font-style:normal;color:#fff;animation:recblink 1s infinite;margin:0 4px}
+  @keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(216,50,43,.7)}70%{box-shadow:0 0 0 9px rgba(216,50,43,0)}100%{box-shadow:0 0 0 0 rgba(216,50,43,0)}}
+  .nextbar.recbar{border-color:#D8322B;background:rgba(216,50,43,.12)}
+  .nextbar.recbar .pc{background:#D8322B;color:#fff;border-color:#D8322B;animation:recblink 1.2s infinite}
   .rsum{display:flex;gap:10px;align-items:center;padding:7px 0;font-size:14px}
   .rg{display:grid;grid-template-columns:minmax(0,1fr) 46px 92px;gap:6px;align-items:center}
   .rg.n2{grid-template-columns:minmax(0,1fr) 46px}
@@ -428,7 +445,7 @@
   <nav class="nav" id="nav">
     <a href="#/results" data-v="results">Latest Results</a>
     <a href="#/confirm" data-v="confirm">Confirmations</a>
-    <a href="#/record" data-v="record" id="navrec" style="display:none">Record Results</a>
+    <a href="#/record" data-v="record" id="navrec" style="display:none"><b>&#9654;</b>Record Results<b>&#9664;</b></a>
     <a href="#/standings" data-v="standings">Standings</a>
     <a href="#/trends" data-v="trends">Trends</a>
     <a href="#/weeks" data-v="weeks">Weeks</a>
@@ -835,12 +852,6 @@
       const pend = allResults()[0];
       return h + '<div class="card" style="margin-top:6px"><div class="who" style="font-size:16px;font-weight:700">' + (pend ? 'Results for Week ' + pend.week + ' open on ' + fmtDay(pend.date) + ' at ' + to12(pend.opensAt) + ' ET' : 'No session is waiting for results right now') + '</div><p class="muted" style="font-size:13px;margin:8px 0 0">After your games, come back here to record your League Court. Results can only be recorded by players who played that day.</p></div>';
     }
-    const me = myName();
-    const mine = me && rs.playing.indexOf(me) >= 0;
-    if(!mine){
-      return h + '<h2 class="sec">Who are you?</h2><div class="card">' + (me ? '<p style="font-size:13.5px;margin:0 0 10px">' + esc(me) + ' is not on this week’s court list. Only players who played Week ' + rs.week + ' can record results.</p>' : '<p style="font-size:13.5px;margin:0 0 10px">Pick your name to continue. Only players who played Week ' + rs.week + ' are listed.</p>') +
-        '<div class="plist" id="rwho" style="max-height:none">' + rs.playing.slice().sort((a,b)=>a.localeCompare(b)).map(n => '<div class="pitem" data-n="' + esc(n) + '"><span>' + esc(n) + '</span></div>').join('') + '</div></div>';
-    }
     const done = rs.courts.filter(c => c.done).length;
     if(rec.step === 'enter' && rec.court){
       const c = rs.courts.filter(x => x.name === rec.court)[0];
@@ -848,42 +859,32 @@
       else if(c.done){ rec.step = 'courts'; }
       else {
         const filled = c.players.filter(n => rec.places[n]).length;
-        h += '<h2 class="sec">League Court ' + c.name + ' <span class="hint">tap a place next to each player</span></h2><div class="card">' +
-          c.players.map(n => '<div class="prow"><span class="pn2">' + esc(n) + '</span><span class="plcs">' + ORD.map((o,i) => '<button class="plc p' + (i+1) + (rec.places[n] === i+1 ? ' on' : '') + '" data-n="' + esc(n) + '" data-p="' + (i+1) + '">' + o + '</button>').join('') + '</span></div>').join('') + '</div>' +
-          '<div class="note">' + (filled === c.players.length ? 'All players have a place. Review and submit.' : (c.players.length - filled) + ' player' + (c.players.length - filled === 1 ? '' : 's') + ' still need a place. Each place can only be used once.') + '</div>' +
-          '<div class="arow"><button class="btn alt" id="rback">Back</button><button class="btn" id="rsubmit"' + (filled === c.players.length ? '' : ' disabled') + '>Review and submit</button></div>';
+        h += '<h2 class="sec">League Court ' + c.name + ' <span class="hint">tap each player in finishing order</span></h2><div class="card"><div class="prow prh"><span>Player</span><span>Result</span></div>' +
+          c.players.map(n => { const p = rec.places[n]; return '<div class="prow tap' + (p ? ' set' : '') + '" data-n="' + esc(n) + '"><span class="pn2">' + esc(n) + '</span><span class="rslot">' + (p ? '<span class="stk p' + p + '">' + ORD[p-1] + '</span>' : '<span class="empty">tap to place</span>') + '</span></div>'; }).join('') + '</div>' +
+          '<div class="note">' + (filled === c.players.length ? 'All players have a place. Review and submit.' : 'First tap = 1st, second tap = 2nd, and so on. Tap a placed player to remove their place.') + '</div>' +
+          '<div class="arow"><button class="btn alt" id="rback">Back</button><button class="btn alt" id="rreset">Reset</button><button class="btn" id="rsubmit"' + (filled === c.players.length ? '' : ' disabled') + '>Review and submit</button></div>';
         return h;
       }
-    }
-    if(rec.step === 'home'){
-      h += '<h2 class="sec">Hi ' + esc(me) + ' <span class="hint"><a href="#" id="rnotme" style="color:var(--mute)">Not you?</a></span></h2><div class="rbig">' +
-        '<div class="rcard" id="rgoreg"><h3>Register</h3><p>Confirm or cancel your spot for an upcoming session.</p><span class="chip go">Confirmations</span></div>' +
-        '<div class="rcard" id="rgorec"><h3>Record Results</h3><p>Pick your League Court and record the finishing order. ' + done + ' of ' + rs.courts.length + ' courts recorded so far.</p><span class="chip wait">Week ' + rs.week + '</span></div></div>';
-      return h;
     }
     h += '<h2 class="sec">Choose your League Court <span class="hint">' + done + ' of ' + rs.courts.length + ' recorded</span></h2>';
     if(rs.allIn) h += '<div class="banner" style="border-color:var(--green);color:#7fd9ad;background:rgba(95,191,143,.12)">All courts are recorded. The results will be published shortly.</div>';
     h += '<div class="rbig">' + rs.courts.map(c => '<div class="rcard' + (c.done ? ' done' : '') + '"' + (c.done ? '' : ' data-court="' + c.name + '"') + '><h3>League Court ' + c.name + '</h3><p>' + c.players.map(esc).join(' &middot; ') + '</p>' +
-      (c.done ? '<span class="chip go">Recorded by ' + esc(c.by) + '</span>' + (c.conflicts && c.conflicts.length ? '<p style="margin:10px 0 0;color:var(--gold)">Another entry differs. Ben will review.</p>' : '') : '<span class="chip wait">Not recorded yet &middot; tap to record</span>') + '</div>').join('') + '</div>' +
-      '<div class="arow"><button class="btn alt" id="rhome">Back</button></div>';
+      (c.done ? '<span class="chip go">Recorded</span>' + (c.conflicts && c.conflicts.length ? '<p style="margin:10px 0 0;color:var(--gold)">Another entry differs. Ben will review.</p>' : '') : '<span class="chip wait">Not recorded yet &middot; tap to record</span>') + '</div>').join('') + '</div>' +
+      '';
     return h;
   }
   function repaintRecord(){ if(currentView() === 'record'){ paint(viewRecord()); bindRecord(); } }
   function bindRecord(){
     const g = id => document.getElementById(id);
     const rs = recSession();
-    const who = g('rwho'); if(who) who.addEventListener('click', e => { const it = e.target.closest('.pitem'); if(!it) return; setMe(it.getAttribute('data-n')); rec = {step:'home', court:null, places:{}}; repaintRecord(); });
-    if(g('rnotme')) g('rnotme').addEventListener('click', e => { e.preventDefault(); setMe(''); repaintRecord(); });
-    if(g('rgoreg')) g('rgoreg').addEventListener('click', () => { location.hash = '#/confirm'; });
-    if(g('rgorec')) g('rgorec').addEventListener('click', () => { rec.step = 'courts'; repaintRecord(); });
-    if(g('rhome')) g('rhome').addEventListener('click', () => { rec.step = 'home'; repaintRecord(); });
     document.querySelectorAll('.rcard[data-court]').forEach(el => el.addEventListener('click', () => { rec = {step:'enter', court:el.getAttribute('data-court'), places:{}}; repaintRecord(); }));
-    document.querySelectorAll('.plc').forEach(b => b.addEventListener('click', () => {
-      const n = b.getAttribute('data-n'), p = Number(b.getAttribute('data-p'));
-      if(rec.places[n] === p){ delete rec.places[n]; }
-      else { Object.keys(rec.places).forEach(k => { if(rec.places[k] === p) delete rec.places[k]; }); rec.places[n] = p; }
+    document.querySelectorAll('.prow.tap').forEach(b => b.addEventListener('click', () => {
+      const n = b.getAttribute('data-n');
+      if(rec.places[n]){ delete rec.places[n]; }
+      else { const used = Object.keys(rec.places).map(k => rec.places[k]); let p = 1; while(used.indexOf(p) >= 0) p++; rec.places[n] = p; }
       repaintRecord();
     }));
+    if(g('rreset')) g('rreset').addEventListener('click', () => { rec.places = {}; repaintRecord(); });
     if(g('rback')) g('rback').addEventListener('click', () => { rec.step = 'courts'; repaintRecord(); });
     if(g('rsubmit')) g('rsubmit').addEventListener('click', () => {
       const c = rs && rs.courts.filter(x => x.name === rec.court)[0]; if(!c) return;
@@ -895,7 +896,7 @@
       ov.querySelector('#ryes').addEventListener('click', async () => {
         const b = ov.querySelector('#ryes'); b.disabled = true; b.textContent = 'Saving...';
         try {
-          const r = await apiPost({kind:'result', session:rs.id, court:c.name, player:myName(), places:rec.places});
+          const r = await apiPost({kind:'result', session:rs.id, court:c.name, places:rec.places});
           if(r.state) applyState(r.state);
           if(r.ok){ toast('League Court ' + c.name + ' recorded. Thank you!'); rec = {step:'courts', court:null, places:{}}; }
           else { toast(r.error || 'Something went wrong', true); rec = {step:'courts', court:null, places:{}}; }
@@ -1125,7 +1126,7 @@
       chip:'<a class="pc" href="#/weeks/' + wk.n + '">Full week &rarr;</a>',
       tiles:[['Players', s.names.length, (s.prev ? (delta>0?'+':'') + delta + ' vs W' + s.prev.n : '')], ['Courts', courts, courts*4 + ' spots'], ['Court winners', s.winners.length, s.winners.map(w=>w.name).join(', ')], ['Biggest climb', s.climbers[0] ? '+' + s.climbers[0].d : '–', s.climbers[0] ? s.climbers[0].name : '']]});
 
-    openResults().forEach(r => { h += '<a class="nextbar" href="#/record"><span><b>Week ' + r.week + ' &middot; results are open</b><i>' + r.courts.filter(c => c.done).length + ' of ' + r.courts.length + ' courts recorded &middot; tap to record your League Court</i></span><span class="pc go">Record results &rarr;</span></a>'; });
+    openResults().forEach(r => { h += '<a class="nextbar recbar" href="#/record"><span><b>Week ' + r.week + ' &middot; results are open</b><i>' + r.courts.filter(c => c.done).length + ' of ' + r.courts.length + ' courts recorded &middot; tap to record your League Court</i></span><span class="pc go">Record results &rarr;</span></a>'; });
     if(rawState && rawState.sessions){
       rawState.sessions.forEach(s => { h += '<a class="nextbar" href="#/confirm" data-sid="' + s.id + '"><span><b>Week ' + s.week + ' &middot; ' + fmtDay(s.date) + ' at ' + esc(s.time) + ' &middot; confirmations are open</b><i>' + s.confirmed.length + ' players confirmed &middot; courts update live</i></span><span class="go2">Open &rarr;</span></a>'; });
       if(!rawState.sessions.length && rawState.next) h += '<div class="nextbar muted"><span><b>Next confirmations open ' + fmtDay(rawState.next.opensDate) + ' at 9:00 AM ET</b><i>Week ' + rawState.next.week + ' &middot; ' + fmtDay(rawState.next.date) + ' at ' + esc(rawState.next.time) + '</i></span></div>';
