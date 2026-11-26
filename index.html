@@ -823,6 +823,7 @@
   /* ---------- record results (game day) ---------- */
   let rec = {step:'home', court:null, places:{}};
   const ORD = ['1st','2nd','3rd','4th'];
+  function to12(s){ const m = /^(\d{1,2}):(\d{2})$/.exec(String(s||'')); if(!m) return esc(s); let h = Number(m[1]); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + m[2] + ' ' + ap; }
   function allResults(){ return (rawState && rawState.results) || []; }
   function openResults(){ return allResults().filter(r => r.open); }
   function recSession(){ const o = openResults(); return o.length ? o[0] : null; }
@@ -832,7 +833,7 @@
     if(!rawState){ return h + '<div class="pending">Loading...</div>'; }
     if(!rs){
       const pend = allResults()[0];
-      return h + '<div class="card" style="margin-top:6px"><div class="who" style="font-size:16px;font-weight:700">' + (pend ? 'Results for Week ' + pend.week + ' open on ' + fmtDay(pend.date) + ' at ' + esc(pend.opensAt) + ' ET' : 'No session is waiting for results right now') + '</div><p class="muted" style="font-size:13px;margin:8px 0 0">After your games, come back here to record your League Court. Results can only be recorded by players who played that day.</p></div>';
+      return h + '<div class="card" style="margin-top:6px"><div class="who" style="font-size:16px;font-weight:700">' + (pend ? 'Results for Week ' + pend.week + ' open on ' + fmtDay(pend.date) + ' at ' + to12(pend.opensAt) + ' ET' : 'No session is waiting for results right now') + '</div><p class="muted" style="font-size:13px;margin:8px 0 0">After your games, come back here to record your League Court. Results can only be recorded by players who played that day.</p></div>';
     }
     const me = myName();
     const mine = me && rs.playing.indexOf(me) >= 0;
@@ -998,7 +999,7 @@
   function adminResultsHtml(){
     const rs = (rawState && rawState.results) || [];
     if(!rs.length) return '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Game-day results</div><div class="note" style="margin-top:0">Nothing is waiting for results. They open on game day at 8:00 PM ET.</div></div>';
-    return rs.map(r => '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Game-day results &middot; Week ' + r.week + ' &middot; ' + (r.open ? 'open' : 'opens ' + esc(r.opensAt) + ' ET') + (r.allIn ? ' &middot; all courts in' : '') + '</div>' +
+    return rs.map(r => '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Game-day results &middot; Week ' + r.week + ' &middot; ' + (r.open ? 'open' : 'opens ' + to12(r.opensAt) + ' ET') + (r.allIn ? ' &middot; all courts in' : '') + '</div>' +
       r.courts.map(c => '<div class="act"><span><b>League Court ' + c.name + '</b> &middot; ' + (c.done ? 'recorded by ' + esc(c.by) + (c.admin ? ' (admin)' : '') + ': ' + Object.keys(c.places).sort((a,b)=>c.places[a]-c.places[b]).map(n => c.places[n] + '. ' + esc(n)).join(', ') : 'not recorded') +
         (c.conflicts && c.conflicts.length ? '<br><span style="color:var(--gold)">Conflicting entries: ' + c.conflicts.map(x => esc(x.by)).join(', ') + '</span>' : '') + '</span>' +
         (c.done ? '<button class="btn warn rclear" data-s="' + r.id + '" data-c="' + c.name + '" style="padding:6px 10px;font-size:12px">Clear</button>' : '') + '</div>').join('') + '</div>').join('');
