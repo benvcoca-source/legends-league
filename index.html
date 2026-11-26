@@ -61,6 +61,23 @@
   .row:hover .pn{color:var(--gold)}
   .pn{font-weight:600}
   .rkx{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim)}
+  .rbig{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:10px}
+  .rcard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .15s,transform .15s}
+  .rcard:hover{border-color:var(--gold);transform:translateY(-1px)}
+  .rcard.done{cursor:default;opacity:.92}
+  .rcard h3{font-family:'Bebas Neue',sans-serif;font-size:24px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.5px}
+  .rcard p{font-size:13px;color:var(--mute);margin:0 0 12px;line-height:1.5}
+  .prow{display:flex;align-items:center;justify-content:space-between;gap:10px 14px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+  .prow:first-of-type{border-top:0}
+  .prow .pn2{font-weight:700;font-size:15px;min-width:140px}
+  .plcs{display:flex;gap:6px;flex:1;justify-content:flex-end;min-width:240px}
+  .plc{flex:1;max-width:70px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;border:1px solid var(--line2);background:transparent;color:var(--mute);padding:10px 0;border-radius:8px;cursor:pointer}
+  .plc:hover{border-color:var(--gold);color:var(--text)}
+  .plc.on.p1{background:rgba(230,240,122,.22);color:var(--gold);border-color:var(--gold)}
+  .plc.on.p2{background:rgba(200,208,218,.16);color:#C8D0DA;border-color:#C8D0DA}
+  .plc.on.p3{background:rgba(205,127,50,.2);color:#CD8032;border-color:#CD8032}
+  .plc.on.p4{background:rgba(92,114,133,.2);color:var(--mute);border-color:var(--dim)}
+  .rsum{display:flex;gap:10px;align-items:center;padding:7px 0;font-size:14px}
   .rg{display:grid;grid-template-columns:minmax(0,1fr) 46px 92px;gap:6px;align-items:center}
   .rg.n2{grid-template-columns:minmax(0,1fr) 46px}
   .rgh{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--dim);letter-spacing:.8px;text-transform:uppercase;padding:0 0 6px}
@@ -411,6 +428,7 @@
   <nav class="nav" id="nav">
     <a href="#/results" data-v="results">Latest Results</a>
     <a href="#/confirm" data-v="confirm">Confirmations</a>
+    <a href="#/record" data-v="record" id="navrec" style="display:none">Record Results</a>
     <a href="#/standings" data-v="standings">Standings</a>
     <a href="#/trends" data-v="trends">Trends</a>
     <a href="#/weeks" data-v="weeks">Weeks</a>
@@ -802,6 +820,90 @@
     return h;
   }
 
+  /* ---------- record results (game day) ---------- */
+  let rec = {step:'home', court:null, places:{}};
+  const ORD = ['1st','2nd','3rd','4th'];
+  function allResults(){ return (rawState && rawState.results) || []; }
+  function openResults(){ return allResults().filter(r => r.open); }
+  function recSession(){ const o = openResults(); return o.length ? o[0] : null; }
+  function viewRecord(){
+    const rs = recSession();
+    let h = hero({img:2, sm:true, kick:'Oakville Padel Organization — game day', title:'Record', accent:'Results', sub: rs ? 'Week ' + rs.week + ' · ' + fmtDate(rs.date,true) + '. Record your League Court as soon as you finish playing.' : 'Results open on game day at 8:00 PM ET.'});
+    if(!rawState){ return h + '<div class="pending">Loading...</div>'; }
+    if(!rs){
+      const pend = allResults()[0];
+      return h + '<div class="card" style="margin-top:6px"><div class="who" style="font-size:16px;font-weight:700">' + (pend ? 'Results for Week ' + pend.week + ' open on ' + fmtDay(pend.date) + ' at ' + esc(pend.opensAt) + ' ET' : 'No session is waiting for results right now') + '</div><p class="muted" style="font-size:13px;margin:8px 0 0">After your games, come back here to record your League Court. Results can only be recorded by players who played that day.</p></div>';
+    }
+    const me = myName();
+    const mine = me && rs.playing.indexOf(me) >= 0;
+    if(!mine){
+      return h + '<h2 class="sec">Who are you?</h2><div class="card">' + (me ? '<p style="font-size:13.5px;margin:0 0 10px">' + esc(me) + ' is not on this week’s court list. Only players who played Week ' + rs.week + ' can record results.</p>' : '<p style="font-size:13.5px;margin:0 0 10px">Pick your name to continue. Only players who played Week ' + rs.week + ' are listed.</p>') +
+        '<div class="plist" id="rwho" style="max-height:none">' + rs.playing.slice().sort((a,b)=>a.localeCompare(b)).map(n => '<div class="pitem" data-n="' + esc(n) + '"><span>' + esc(n) + '</span></div>').join('') + '</div></div>';
+    }
+    const done = rs.courts.filter(c => c.done).length;
+    if(rec.step === 'enter' && rec.court){
+      const c = rs.courts.filter(x => x.name === rec.court)[0];
+      if(!c){ rec.step = 'courts'; }
+      else if(c.done){ rec.step = 'courts'; }
+      else {
+        const filled = c.players.filter(n => rec.places[n]).length;
+        h += '<h2 class="sec">League Court ' + c.name + ' <span class="hint">tap a place next to each player</span></h2><div class="card">' +
+          c.players.map(n => '<div class="prow"><span class="pn2">' + esc(n) + '</span><span class="plcs">' + ORD.map((o,i) => '<button class="plc p' + (i+1) + (rec.places[n] === i+1 ? ' on' : '') + '" data-n="' + esc(n) + '" data-p="' + (i+1) + '">' + o + '</button>').join('') + '</span></div>').join('') + '</div>' +
+          '<div class="note">' + (filled === c.players.length ? 'All players have a place. Review and submit.' : (c.players.length - filled) + ' player' + (c.players.length - filled === 1 ? '' : 's') + ' still need a place. Each place can only be used once.') + '</div>' +
+          '<div class="arow"><button class="btn alt" id="rback">Back</button><button class="btn" id="rsubmit"' + (filled === c.players.length ? '' : ' disabled') + '>Review and submit</button></div>';
+        return h;
+      }
+    }
+    if(rec.step === 'home'){
+      h += '<h2 class="sec">Hi ' + esc(me) + ' <span class="hint"><a href="#" id="rnotme" style="color:var(--mute)">Not you?</a></span></h2><div class="rbig">' +
+        '<div class="rcard" id="rgoreg"><h3>Register</h3><p>Confirm or cancel your spot for an upcoming session.</p><span class="chip go">Confirmations</span></div>' +
+        '<div class="rcard" id="rgorec"><h3>Record Results</h3><p>Pick your League Court and record the finishing order. ' + done + ' of ' + rs.courts.length + ' courts recorded so far.</p><span class="chip wait">Week ' + rs.week + '</span></div></div>';
+      return h;
+    }
+    h += '<h2 class="sec">Choose your League Court <span class="hint">' + done + ' of ' + rs.courts.length + ' recorded</span></h2>';
+    if(rs.allIn) h += '<div class="banner" style="border-color:var(--green);color:#7fd9ad;background:rgba(95,191,143,.12)">All courts are recorded. The results will be published shortly.</div>';
+    h += '<div class="rbig">' + rs.courts.map(c => '<div class="rcard' + (c.done ? ' done' : '') + '"' + (c.done ? '' : ' data-court="' + c.name + '"') + '><h3>League Court ' + c.name + '</h3><p>' + c.players.map(esc).join(' &middot; ') + '</p>' +
+      (c.done ? '<span class="chip go">Recorded by ' + esc(c.by) + '</span>' + (c.conflicts && c.conflicts.length ? '<p style="margin:10px 0 0;color:var(--gold)">Another entry differs. Ben will review.</p>' : '') : '<span class="chip wait">Not recorded yet &middot; tap to record</span>') + '</div>').join('') + '</div>' +
+      '<div class="arow"><button class="btn alt" id="rhome">Back</button></div>';
+    return h;
+  }
+  function repaintRecord(){ if(currentView() === 'record'){ paint(viewRecord()); bindRecord(); } }
+  function bindRecord(){
+    const g = id => document.getElementById(id);
+    const rs = recSession();
+    const who = g('rwho'); if(who) who.addEventListener('click', e => { const it = e.target.closest('.pitem'); if(!it) return; setMe(it.getAttribute('data-n')); rec = {step:'home', court:null, places:{}}; repaintRecord(); });
+    if(g('rnotme')) g('rnotme').addEventListener('click', e => { e.preventDefault(); setMe(''); repaintRecord(); });
+    if(g('rgoreg')) g('rgoreg').addEventListener('click', () => { location.hash = '#/confirm'; });
+    if(g('rgorec')) g('rgorec').addEventListener('click', () => { rec.step = 'courts'; repaintRecord(); });
+    if(g('rhome')) g('rhome').addEventListener('click', () => { rec.step = 'home'; repaintRecord(); });
+    document.querySelectorAll('.rcard[data-court]').forEach(el => el.addEventListener('click', () => { rec = {step:'enter', court:el.getAttribute('data-court'), places:{}}; repaintRecord(); }));
+    document.querySelectorAll('.plc').forEach(b => b.addEventListener('click', () => {
+      const n = b.getAttribute('data-n'), p = Number(b.getAttribute('data-p'));
+      if(rec.places[n] === p){ delete rec.places[n]; }
+      else { Object.keys(rec.places).forEach(k => { if(rec.places[k] === p) delete rec.places[k]; }); rec.places[n] = p; }
+      repaintRecord();
+    }));
+    if(g('rback')) g('rback').addEventListener('click', () => { rec.step = 'courts'; repaintRecord(); });
+    if(g('rsubmit')) g('rsubmit').addEventListener('click', () => {
+      const c = rs && rs.courts.filter(x => x.name === rec.court)[0]; if(!c) return;
+      const order = c.players.slice().sort((a,b) => rec.places[a] - rec.places[b]);
+      const ov = openDialog('<h3>Submit League Court ' + c.name + '?</h3><p>Please check the finishing order. Once submitted it is locked and only Ben can change it.</p>' +
+        order.map(n => '<div class="rsum"><span class="medal m' + rec.places[n] + '">' + ORD[rec.places[n]-1] + '</span><b>' + esc(n) + '</b></div>').join('') +
+        '<div class="mbtns" style="margin-top:14px"><button class="btn alt" id="rno">Go back</button><button class="btn" id="ryes">Yes, submit results</button></div>');
+      ov.querySelector('#rno').addEventListener('click', () => ov.remove());
+      ov.querySelector('#ryes').addEventListener('click', async () => {
+        const b = ov.querySelector('#ryes'); b.disabled = true; b.textContent = 'Saving...';
+        try {
+          const r = await apiPost({kind:'result', session:rs.id, court:c.name, player:myName(), places:rec.places});
+          if(r.state) applyState(r.state);
+          if(r.ok){ toast('League Court ' + c.name + ' recorded. Thank you!'); rec = {step:'courts', court:null, places:{}}; }
+          else { toast(r.error || 'Something went wrong', true); rec = {step:'courts', court:null, places:{}}; }
+        } catch(e){ toast('Could not reach the server. Please try again.', true); }
+        ov.remove(); repaintRecord(); updateChrome();
+      });
+    });
+  }
+
   /* ---------- attendance dialogs ---------- */
   function openDialog(inner){
     const ov = document.createElement('div'); ov.className = 'ov'; ov.style.alignItems = 'center'; ov.style.padding = '16px';
@@ -875,6 +977,7 @@
       (wi.courts.length ? courtCards(wi.courts,'next') : '<div class="pending">No courts yet.</div>') +
       (wi.notes.length ? '<div class="notes">'+wi.notes.map(n=>'<div>'+esc(n)+'</div>').join('')+'</div>' : '') +
       '</div>' +
+      adminResultsHtml() +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Flags for review</div>' + ((wi.flags||[]).length ? (wi.flags||[]).map(f => '<div class="banner" style="margin-top:8px">'+esc(f)+'</div>').join('') : '<div class="note">Nothing to flag. The engine placed everyone by the standard rules.</div>') + '<div class="note">Courts are placed automatically by the engine every time someone confirms or cancels. Anything unusual (a returning top-4 alumnus, a new player) shows here so you can check it.</div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Why these courts</div><div class="note" style="margin-bottom:8px">Rank court = where the player\u0027s rank alone puts them. Form = average of the last 2 played sessions, weighted by court (A 1-4, B 4-7, C 7-10), lower is better. A swap needs a gap of ' + FORM_GAP + ' or more.</div>' +
       '<div style="overflow-x:auto"><table class="whytbl"><tr><th>Player</th><th>Rank</th><th>Rank court</th><th>Final</th><th>Last 2 sessions</th><th>Form</th><th>Reason</th></tr>' +
@@ -892,10 +995,19 @@
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Recent activity</div>' + ((live&&live.activity||[]).map(a => '<div class="act"><span>'+esc(a.player)+' '+(a.action==='confirm'?'confirmed':'cancelled')+' ('+esc(a.src==='seed'?'entered by Claude':a.src==='public'?'player':a.src)+')</span><span>'+new Date(a.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</span></div>').join('') || '<div class="note">Nothing yet.</div>') + '</div>' +
       '<div class="arow"><button class="btn alt" id="alock">Lock admin</button></div>';
   }
+  function adminResultsHtml(){
+    const rs = (rawState && rawState.results) || [];
+    if(!rs.length) return '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Game-day results</div><div class="note" style="margin-top:0">Nothing is waiting for results. They open on game day at 8:00 PM ET.</div></div>';
+    return rs.map(r => '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Game-day results &middot; Week ' + r.week + ' &middot; ' + (r.open ? 'open' : 'opens ' + esc(r.opensAt) + ' ET') + (r.allIn ? ' &middot; all courts in' : '') + '</div>' +
+      r.courts.map(c => '<div class="act"><span><b>League Court ' + c.name + '</b> &middot; ' + (c.done ? 'recorded by ' + esc(c.by) + (c.admin ? ' (admin)' : '') + ': ' + Object.keys(c.places).sort((a,b)=>c.places[a]-c.places[b]).map(n => c.places[n] + '. ' + esc(n)).join(', ') : 'not recorded') +
+        (c.conflicts && c.conflicts.length ? '<br><span style="color:var(--gold)">Conflicting entries: ' + c.conflicts.map(x => esc(x.by)).join(', ') + '</span>' : '') + '</span>' +
+        (c.done ? '<button class="btn warn rclear" data-s="' + r.id + '" data-c="' + c.name + '" style="padding:6px 10px;font-size:12px">Clear</button>' : '') + '</div>').join('') + '</div>').join('');
+  }
   function bindAdmin(){
     const g = id => document.getElementById(id);
     const rerender = () => { paint(viewAdmin()); bindAdmin(); };
     const run = async (o, okMsg) => { try { const r = await adminCall(o); toast(r.ok ? okMsg : (r.error || 'Failed'), !r.ok); } catch(e){ toast('Could not reach the server', true); } rerender(); };
+    document.querySelectorAll('.rclear').forEach(b => b.addEventListener('click', () => { if(confirm('Clear the recorded results for League Court ' + b.getAttribute('data-c') + '? Players will be able to record it again.')) run({op:'clearResult', session:b.getAttribute('data-s'), court:b.getAttribute('data-c')}, 'Court cleared.'); }));
     if(g('aunlock')) g('aunlock').addEventListener('click', async () => {
       try { sessionStorage.setItem('ll_key', g('akey').value.trim()); } catch(e){}
       let r; try { r = await adminCall({op:'check'}); } catch(e){ r = {ok:false, error:'Could not reach the server'}; }
@@ -1012,6 +1124,7 @@
       chip:'<a class="pc" href="#/weeks/' + wk.n + '">Full week &rarr;</a>',
       tiles:[['Players', s.names.length, (s.prev ? (delta>0?'+':'') + delta + ' vs W' + s.prev.n : '')], ['Courts', courts, courts*4 + ' spots'], ['Court winners', s.winners.length, s.winners.map(w=>w.name).join(', ')], ['Biggest climb', s.climbers[0] ? '+' + s.climbers[0].d : '–', s.climbers[0] ? s.climbers[0].name : '']]});
 
+    openResults().forEach(r => { h += '<a class="nextbar" href="#/record"><span><b>Week ' + r.week + ' &middot; results are open</b><i>' + r.courts.filter(c => c.done).length + ' of ' + r.courts.length + ' courts recorded &middot; tap to record your League Court</i></span><span class="pc go">Record results &rarr;</span></a>'; });
     if(rawState && rawState.sessions){
       rawState.sessions.forEach(s => { h += '<a class="nextbar" href="#/confirm" data-sid="' + s.id + '"><span><b>Week ' + s.week + ' &middot; ' + fmtDay(s.date) + ' at ' + esc(s.time) + ' &middot; confirmations are open</b><i>' + s.confirmed.length + ' players confirmed &middot; courts update live</i></span><span class="go2">Open &rarr;</span></a>'; });
       if(!rawState.sessions.length && rawState.next) h += '<div class="nextbar muted"><span><b>Next confirmations open ' + fmtDay(rawState.next.opensDate) + ' at 9:00 AM ET</b><i>Week ' + rawState.next.week + ' &middot; ' + fmtDay(rawState.next.date) + ' at ' + esc(rawState.next.time) + '</i></span></div>';
@@ -1376,6 +1489,7 @@
     else if(v === 'rules'){ html = viewRules(); }
     else if(v === 'tournament'){ html = viewTournament(); }
     else if(v === 'admin'){ html = viewAdmin(); after = function(){ bindAdmin(); if(adminKey()) loadState().then(function(){ if(currentView()==='admin'){ paint(viewAdmin()); bindAdmin(); } }); }; }
+    else if(v === 'record'){ html = viewRecord(); after = function(){ bindRecord(); if(Date.now() - lastLoad > 4000) loadState().then(function(){ if(rec.step !== 'enter') repaintRecord(); updateChrome(); }); }; }
     else if(v === 'confirm'){ html = viewConfirm(); after = function(){ bindWeek(); if(Date.now() - lastLoad > 4000) loadState().then(refreshWeek); }; }
     else { html = viewResults(); after = function(){ if(Date.now() - lastLoad > 4000) loadState().then(function(){ if(currentView() === 'results'){ paint(viewResults()); updateChrome(); } }); }; }
     paint(html);
@@ -1386,6 +1500,7 @@
   function updateChrome(){
     const wi = weekInfo(); const wkNo = live ? live.week : parseInt(nextMatch.week.replace(/\D/g,''),10);
     const chip = document.getElementById('navchip'); if(chip){ const ns = (rawState && rawState.sessions) ? rawState.sessions.length : 1; chip.innerHTML = !wkNo ? '<i></i>Confirmations' : ns > 1 ? '<i></i>' + ns + ' sessions open' : '<i></i>Week ' + wkNo + ' \u00b7 ' + wi.confirmed.length + ' confirmed'; }
+    const nr = document.getElementById('navrec'); if(nr) nr.style.display = openResults().length ? '' : 'none';
     const b = document.getElementById('brandwk'); if(b) b.textContent = '/ WK ' + lastWeekNo;
   }
   function bindWeeks(sel){
@@ -1406,8 +1521,8 @@
   });
   loadPhotos();
   window.addEventListener('hashchange', route);
-  setInterval(function(){ if(currentView()==='confirm' && !document.querySelector('.ov') && !document.hidden){ loadState().then(refreshWeek); } }, 20000);
-  loadState().then(function(){ if(currentView()==='weeks') route(); if(currentView()==='confirm') refreshWeek(); if(currentView()==='admin' && adminKey()){ paint(viewAdmin()); bindAdmin(); } updateChrome(); });
+  setInterval(function(){ if(currentView()==='confirm' && !document.querySelector('.ov') && !document.hidden){ loadState().then(refreshWeek); } if(currentView()==='record' && rec.step !== 'enter' && !document.querySelector('.ov') && !document.hidden){ loadState().then(repaintRecord); } }, 20000);
+  loadState().then(function(){ if(currentView()==='record') repaintRecord(); if(currentView()==='weeks') route(); if(currentView()==='confirm') refreshWeek(); if(currentView()==='admin' && adminKey()){ paint(viewAdmin()); bindAdmin(); } updateChrome(); });
   document.getElementById('foot').textContent = 'Legends League · Oakville Padel Organization · Standings through Week ' + lastWeekNo;
   route();
 })();
