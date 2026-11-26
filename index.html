@@ -61,6 +61,7 @@
   .row:hover .pn{color:var(--gold)}
   .pn{font-weight:600}
   .rkx{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim)}
+  .cx{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--gold);border:1px solid var(--gold);background:rgba(230,240,122,.12);border-radius:4px;padding:2px 6px;text-transform:uppercase;white-space:nowrap}
   .mv{font-family:'IBM Plex Mono',monospace;font-size:10.5px}
   .up{color:#7fd9ad}.down{color:#f08a73}.flat{color:var(--dim)}
   .medal{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:3px;text-transform:uppercase;white-space:nowrap}
@@ -610,8 +611,8 @@
       return '<div class="court" style="border-top-color:'+col+'"><div class="court-t" style="color:'+col+'"><span>'+courtLabel(c.name)+'</span></div>' +
         list.map(p => mode==='results'
           ? '<div class="row"><span>'+(p.res===1?'&#128081; ':'')+nm(p.name)+'</span>'+medal(p.res)+'</div>'
-          : '<div class="row"><span>'+nm(p.name)+'</span><span class="rkx">'+(p.rank==null?'new':'#'+p.rank)+'</span></div>').join('') + '</div>';
-    }).join('') + '</div>';
+          : '<div class="row"><span>'+nm(p.name)+'</span><span style="display:flex;gap:10px;align-items:center">'+(mode==='next' && live && live.px && live.px[p.name] ? '<span class="cx">Court '+live.px[p.name]+'</span>' : '')+'<span class="rkx">'+(p.rank==null?'new':'#'+p.rank)+'</span></span></div>').join('') + '</div>';
+    }).join('') + '</div>' + (mode==='next' && live && live.px && Object.keys(live.px).length ? '<div class="note">Gold number = the physical court at the club. Ladder courts (A, B, C) are only for rankings.</div>' : '');
   }
 
   /* ---------- live attendance state (n8n + Google Sheet) ---------- */
@@ -625,7 +626,7 @@
     let cur = null; s.sessions.forEach(x => { if(x.id === selId) cur = x; });
     if(!cur) cur = s.sessions[0] || null;
     selId = cur ? cur.id : null;
-    live = Object.assign({}, s, cur ? {sid:cur.id, week:cur.week, date:cur.date, matchTime:cur.time, maxCourts:cur.maxCourts, confirmed:cur.confirmed, changes:cur.changes, plan:cur.plan, activity:cur.activity} : {sid:null, week:null, date:'', matchTime:'', maxCourts:0, confirmed:[], changes:{}, plan:null, activity:[]});
+    live = Object.assign({}, s, cur ? {sid:cur.id, week:cur.week, date:cur.date, matchTime:cur.time, maxCourts:cur.maxCourts, confirmed:cur.confirmed, changes:cur.changes, plan:cur.plan, px:cur.px||{}, activity:cur.activity} : {sid:null, week:null, date:'', matchTime:'', maxCourts:0, confirmed:[], changes:{}, plan:null, activity:[]});
   }
   function myName(){ try { return localStorage.getItem('ll_me') || ''; } catch(e){ return ''; } }
   function setMe(n){ try { if(n) localStorage.setItem('ll_me', n); else localStorage.removeItem('ll_me'); } catch(e){} }
