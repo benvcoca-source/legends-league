@@ -61,6 +61,12 @@
   .row:hover .pn{color:var(--gold)}
   .pn{font-weight:600}
   .rkx{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim)}
+  .rg{display:grid;grid-template-columns:minmax(0,1fr) 46px 92px;gap:6px;align-items:center}
+  .rg.n2{grid-template-columns:minmax(0,1fr) 46px}
+  .rgh{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--dim);letter-spacing:.8px;text-transform:uppercase;padding:0 0 6px}
+  .rgc{text-align:center}
+  .rgr{text-align:right}
+  .rgh .rgr{color:var(--gold)}
   .rsv{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--gold);letter-spacing:.8px}
   .cx{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--gold);border:1px solid var(--gold);background:rgba(230,240,122,.12);border-radius:4px;padding:2px 6px;white-space:nowrap}
   .mv{font-family:'IBM Plex Mono',monospace;font-size:10.5px}
@@ -610,10 +616,12 @@
       }
       const list = mode==='results' ? c.players.slice().sort((a,b)=>a.res-b.res) : c.players.slice().sort((a,b)=>(a.rank==null?999:a.rank)-(b.rank==null?999:b.rank));
       const hasPx = mode==='next' && live && live.px && list.some(p => live.px[p.name]);
-      return '<div class="court" style="border-top-color:'+col+'"><div class="court-t" style="color:'+col+'"><span>'+courtLabel(c.name)+'</span>'+(hasPx ? '<span class="rsv">Reservations</span>' : '')+'</div>' +
+      return '<div class="court" style="border-top-color:'+col+'"><div class="court-t" style="color:'+col+'"><span>'+courtLabel(c.name)+'</span>'+(hasPx ? '' : '')+'</div>' + (mode==='next' ? '<div class="rg rgh'+(hasPx?'':' n2')+'"><span></span><span class="rgc">Ranking</span>'+(hasPx ? '<span class="rgr">Reservations</span>' : '')+'</div>' : '') +
         list.map(p => mode==='results'
           ? '<div class="row"><span>'+(p.res===1?'&#128081; ':'')+nm(p.name)+'</span>'+medal(p.res)+'</div>'
-          : '<div class="row"><span>'+nm(p.name)+'</span><span style="display:flex;gap:10px;align-items:center">'+(mode==='next' && live && live.px && live.px[p.name] ? '<span class="cx">CourtX #'+live.px[p.name]+'</span>' : '')+'<span class="rkx">'+(p.rank==null?'new':'#'+p.rank)+'</span></span></div>').join('') + '</div>';
+          : (mode==='next'
+              ? '<div class="row rg'+(hasPx?'':' n2')+'"><span>'+nm(p.name)+'</span><span class="rkx rgc">'+(p.rank==null?'new':'#'+p.rank)+'</span>'+(hasPx ? '<span class="rgr">'+(live.px[p.name] ? '<span class="cx">CourtX #'+live.px[p.name]+'</span>' : '')+'</span>' : '')+'</div>'
+              : '<div class="row"><span>'+nm(p.name)+'</span><span class="rkx">'+(p.rank==null?'new':'#'+p.rank)+'</span></div>')).join('') + '</div>';
     }).join('') + '</div>' + (mode==='next' && live && live.px && Object.keys(live.px).length ? '<div class="note">Play is by League Court (A, B, C). CourtX # is only the facility court reserved for your group.</div>' : '');
   }
 
