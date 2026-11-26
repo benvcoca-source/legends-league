@@ -61,6 +61,7 @@
   .row:hover .pn{color:var(--gold)}
   .pn{font-weight:600}
   .rkx{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim)}
+  .rsv{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--gold);letter-spacing:.8px}
   .cx{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--gold);border:1px solid var(--gold);background:rgba(230,240,122,.12);border-radius:4px;padding:2px 6px;white-space:nowrap}
   .mv{font-family:'IBM Plex Mono',monospace;font-size:10.5px}
   .up{color:#7fd9ad}.down{color:#f08a73}.flat{color:var(--dim)}
@@ -536,7 +537,7 @@
     (log[pl.name] = log[pl.name] || []).push({n:w.n, ci:ci, court:c.name, pre:pl.pre, res:pl.res, void:!!c.void});
   })));
 
-  function courtLabel(name){ return /^[0-9]+$/.test(String(name)) ? 'Court ' + name : 'Court ' + String(name).trim(); }
+  function courtLabel(name){ return 'League Court ' + String(name).trim(); }
   function ord(n){ return n===1?'1st':n===2?'2nd':n===3?'3rd':n+'th'; }
   function matchTime(){ return (live && live.matchTime) || '8:00 PM'; } /* default 8:00 PM; Ben can change it per week in Admin */
   function fmtDate(d, long){
@@ -608,11 +609,12 @@
           c.players.map(p => '<div class="row"><span>'+nm(p.name)+'</span><span class="rkx">#'+p.pre+'</span></div>').join('') + '</div>';
       }
       const list = mode==='results' ? c.players.slice().sort((a,b)=>a.res-b.res) : c.players.slice().sort((a,b)=>(a.rank==null?999:a.rank)-(b.rank==null?999:b.rank));
-      return '<div class="court" style="border-top-color:'+col+'"><div class="court-t" style="color:'+col+'"><span>'+courtLabel(c.name)+'</span></div>' +
+      const hasPx = mode==='next' && live && live.px && list.some(p => live.px[p.name]);
+      return '<div class="court" style="border-top-color:'+col+'"><div class="court-t" style="color:'+col+'"><span>'+courtLabel(c.name)+'</span>'+(hasPx ? '<span class="rsv">Reservations</span>' : '')+'</div>' +
         list.map(p => mode==='results'
           ? '<div class="row"><span>'+(p.res===1?'&#128081; ':'')+nm(p.name)+'</span>'+medal(p.res)+'</div>'
           : '<div class="row"><span>'+nm(p.name)+'</span><span style="display:flex;gap:10px;align-items:center">'+(mode==='next' && live && live.px && live.px[p.name] ? '<span class="cx">CourtX #'+live.px[p.name]+'</span>' : '')+'<span class="rkx">'+(p.rank==null?'new':'#'+p.rank)+'</span></span></div>').join('') + '</div>';
-    }).join('') + '</div>' + (mode==='next' && live && live.px && Object.keys(live.px).length ? '<div class="note">CourtX # = the physical court at the club. Ladder courts (A, B, C) are only for rankings.</div>' : '');
+    }).join('') + '</div>' + (mode==='next' && live && live.px && Object.keys(live.px).length ? '<div class="note">Play is by League Court (A, B, C). CourtX # is only the facility court reserved for your group.</div>' : '');
   }
 
   /* ---------- live attendance state (n8n + Google Sheet) ---------- */
@@ -690,7 +692,7 @@
     const base = {}; for(let i=0;i<att.length;i++) base[att[i].name] = courtLetter(Math.floor(i/4));
     const why = [];
     courts.forEach(c => c.players.forEach(p => {
-      const l2 = lastFinishes(p.name, 2).slice().reverse().map(e => 'W' + e.n + ' ' + ord(e.res) + ' on ' + courtLabel(e.court).replace('Court ','')).join(' \u00b7 ');
+      const l2 = lastFinishes(p.name, 2).slice().reverse().map(e => 'W' + e.n + ' ' + ord(e.res) + ' on ' + courtLabel(e.court).replace('League Court ','')).join(' \u00b7 ');
       const f = wf(p.name);
       why.push({name:p.name, rank:p.rank, base:base[p.name], court:c.name, last2:l2 || 'no results yet', form:f===null?null:f.toFixed(1), reason: moveWhy[p.name] || (base[p.name]===c.name ? 'Stays on its rank-based court (no swap triggered).' : '')});
     }));
@@ -1200,7 +1202,7 @@
       if(i%2===0 || n<12) bars += '<text x="'+cx+'" y="'+(H-10)+'" fill="#6B8478" font-size="8.5" font-family="IBM Plex Mono,monospace" text-anchor="middle">W'+x.n+'</text>';
     });
     return '<svg viewBox="0 0 '+W+' '+H+'">'+g+bars+'</svg>' +
-      '<div class="legend" style="justify-content:center"><span class="li"><span class="dot" style="background:#E6F07A"></span>Court A</span><span class="li"><span class="dot" style="background:#6FA8FF"></span>Court B</span><span class="li"><span class="dot" style="background:#E8895A"></span>Court C</span><span class="li muted">1 block = 1 court = 4 players</span></div>';
+      '<div class="legend" style="justify-content:center"><span class="li"><span class="dot" style="background:#E6F07A"></span>League Court A</span><span class="li"><span class="dot" style="background:#6FA8FF"></span>League Court B</span><span class="li"><span class="dot" style="background:#E8895A"></span>League Court C</span><span class="li muted">1 block = 1 court = 4 players</span></div>';
   }
   function heatmapRows(){
     const list = players.filter(p => firstWeekOf(p) < 99);
@@ -1336,7 +1338,7 @@
         const col = COURT_COLORS[e.ci%COURT_COLORS.length];
         const res = e.void ? 'void' : ord(e.res);
         const bg = e.void ? 'rgba(224,96,63,.15)' : e.res===1 ? 'rgba(230,240,122,.22)' : 'var(--card2)';
-        return '<div class="hc" data-w="'+e.n+'" style="background:'+bg+';border-color:'+col+'">W'+e.n+'<br><b>'+res+'</b><small>'+courtLabel(e.court).replace('Court ','Ct ')+'</small></div>';
+        return '<div class="hc" data-w="'+e.n+'" style="background:'+bg+';border-color:'+col+'">W'+e.n+'<br><b>'+res+'</b><small>'+courtLabel(e.court).replace('League Court ','Ct ')+'</small></div>';
       }).join('') + '</div>' : '<div class="note">No matches played yet.</div>') +
       '</div>';
     document.body.appendChild(el);
