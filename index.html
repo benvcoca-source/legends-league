@@ -67,6 +67,7 @@
   .rgc{text-align:center}
   .rgr{text-align:right}
   .rgh .rgr{color:var(--gold)}
+  .cx.tbd{color:var(--dim);border-color:var(--line2);background:transparent;font-weight:400}
   .rsv{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--gold);letter-spacing:.8px}
   .cx{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--gold);border:1px solid var(--gold);background:rgba(230,240,122,.12);border-radius:4px;padding:2px 6px;white-space:nowrap}
   .mv{font-family:'IBM Plex Mono',monospace;font-size:10.5px}
@@ -615,14 +616,14 @@
           c.players.map(p => '<div class="row"><span>'+nm(p.name)+'</span><span class="rkx">#'+p.pre+'</span></div>').join('') + '</div>';
       }
       const list = mode==='results' ? c.players.slice().sort((a,b)=>a.res-b.res) : c.players.slice().sort((a,b)=>(a.rank==null?999:a.rank)-(b.rank==null?999:b.rank));
-      const hasPx = mode==='next' && live && live.px && list.some(p => live.px[p.name]);
+      const hasPx = mode==='next';
       return '<div class="court" style="border-top-color:'+col+'"><div class="court-t" style="color:'+col+'"><span>'+courtLabel(c.name)+'</span>'+(hasPx ? '' : '')+'</div>' + (mode==='next' ? '<div class="rg rgh'+(hasPx?'':' n2')+'"><span></span><span class="rgc">Ranking</span>'+(hasPx ? '<span class="rgr">Reservations</span>' : '')+'</div>' : '') +
         list.map(p => mode==='results'
           ? '<div class="row"><span>'+(p.res===1?'&#128081; ':'')+nm(p.name)+'</span>'+medal(p.res)+'</div>'
           : (mode==='next'
-              ? '<div class="row rg'+(hasPx?'':' n2')+'"><span>'+nm(p.name)+'</span><span class="rkx rgc">'+(p.rank==null?'new':'#'+p.rank)+'</span>'+(hasPx ? '<span class="rgr">'+(live.px[p.name] ? '<span class="cx">CourtX #'+live.px[p.name]+'</span>' : '')+'</span>' : '')+'</div>'
+              ? '<div class="row rg'+(hasPx?'':' n2')+'"><span>'+nm(p.name)+'</span><span class="rkx rgc">'+(p.rank==null?'new':'#'+p.rank)+'</span>'+(hasPx ? '<span class="rgr">'+(live && live.px && live.px[p.name] ? '<span class="cx">CourtX #'+live.px[p.name]+'</span>' : '<span class="cx tbd">CourtX # TBD</span>')+'</span>' : '')+'</div>'
               : '<div class="row"><span>'+nm(p.name)+'</span><span class="rkx">'+(p.rank==null?'new':'#'+p.rank)+'</span></div>')).join('') + '</div>';
-    }).join('') + '</div>' + (mode==='next' && live && live.px && Object.keys(live.px).length ? '<div class="note">Play is by League Court (A, B, C). CourtX # is only the facility court reserved for your group.</div>' : '');
+    }).join('') + '</div>' + (mode==='next' ? '<div class="note">Play is by League Court (A, B, C). CourtX # is only the facility court reserved for your group.</div>' : '');
   }
 
   /* ---------- live attendance state (n8n + Google Sheet) ---------- */
@@ -636,6 +637,9 @@
     let cur = null; s.sessions.forEach(x => { if(x.id === selId) cur = x; });
     if(!cur) cur = s.sessions[0] || null;
     selId = cur ? cur.id : null;
+    for(let wi = weeks.length - 1; wi >= 0; wi--){ if(weeks[wi].upcoming) weeks.splice(wi, 1); }
+    s.sessions.forEach(x => { if(x.week) weeks.push({n:x.week, date:x.date, upcoming:true, sid:x.id, courts:[]}); });
+    weeks.sort((a,b) => a.n - b.n);
     live = Object.assign({}, s, cur ? {sid:cur.id, week:cur.week, date:cur.date, matchTime:cur.time, maxCourts:cur.maxCourts, confirmed:cur.confirmed, changes:cur.changes, plan:cur.plan, px:cur.px||{}, activity:cur.activity} : {sid:null, week:null, date:'', matchTime:'', maxCourts:0, confirmed:[], changes:{}, plan:null, activity:[]});
   }
   function myName(){ try { return localStorage.getItem('ll_me') || ''; } catch(e){ return ''; } }
@@ -1137,25 +1141,26 @@
   /* =========================================================
      VIEW: WEEKS (archive)
      ========================================================= */
-  const timeline = (function(){
+  function buildTimeline(){
     const items = weeks.map(w => ({kind:'week', n:w.n, date:w.date, w:w}));
     byes.forEach(b => items.push({kind:'off', date:b.date, label:b.label, reason:b.reason}));
     const nodate = items.filter(i => !i.date), dated = items.filter(i => i.date).sort((a,b)=>a.date<b.date?-1:1);
     return nodate.concat(dated);
-  })();
+  }
   function viewWeeks(sel){
     const wk = weeks.find(w => w.n === sel) || playedWeeks[playedWeeks.length-1];
     const idx = weeks.indexOf(wk);
     let h = hero({img:2, sm:true, kick:'Oakville Padel Organization \u2014 the archive', title:'Every', accent:'Week', sub:'Pick any week to see the courts, finishes and how the ladder moved.'}) + '<div class="wbar" style="margin-top:18px"><button class="wnav" id="wprev" '+(idx<=0?'disabled':'')+'>&larr;</button><select class="wsel" id="wsel">' +
       weeks.slice().reverse().map(w => '<option value="'+w.n+'"'+(w===wk?' selected':'')+'>Week '+w.n+(w.date?'  &middot;  '+fmtDate(w.date):'')+(w.upcoming?'  (upcoming)':'')+'</option>').join('') +
       '</select><button class="wnav" id="wnext" '+(idx>=weeks.length-1?'disabled':'')+'>&rarr;</button></div>';
-    h += '<div class="strip" id="strip">' + timeline.map(i => {
+    h += '<div class="strip" id="strip">' + buildTimeline().map(i => {
       if(i.kind==='off') return '<div class="wc off" title="'+esc(i.reason)+'"><b>&mdash;</b><i>'+esc(i.label)+'</i></div>';
       return '<div class="wc'+(i.n===wk.n?' on':'')+(i.w.upcoming?' up2':'')+'" data-w="'+i.n+'"><b>W'+i.n+'</b><i>'+(i.date?fmtDate(i.date):'early')+'</i></div>';
     }).join('') + '</div>';
 
     h += '<div class="wh"><h3>Week ' + wk.n + '</h3><span class="mono muted" style="font-size:12px">' + (wk.date ? fmtDate(wk.date,true) : 'Early season (date not recorded)') + '</span></div>';
     if(wk.upcoming){
+      if(wk.sid && rawState && selId !== wk.sid){ selId = wk.sid; applyState(rawState); }
       const wi2 = weekInfo(); h += '<div class="lblrow">' + courtPill(wi2) + '</div>' + (wi2.courts.length ? courtCards(wi2.courts,'next') : '<div class="pending">Courts will appear as players confirm.</div>');
       return h;
     }
@@ -1402,7 +1407,7 @@
   loadPhotos();
   window.addEventListener('hashchange', route);
   setInterval(function(){ if(currentView()==='confirm' && !document.querySelector('.ov') && !document.hidden){ loadState().then(refreshWeek); } }, 20000);
-  loadState().then(function(){ if(currentView()==='confirm') refreshWeek(); if(currentView()==='admin' && adminKey()){ paint(viewAdmin()); bindAdmin(); } updateChrome(); });
+  loadState().then(function(){ if(currentView()==='weeks') route(); if(currentView()==='confirm') refreshWeek(); if(currentView()==='admin' && adminKey()){ paint(viewAdmin()); bindAdmin(); } updateChrome(); });
   document.getElementById('foot').textContent = 'Legends League · Oakville Padel Organization · Standings through Week ' + lastWeekNo;
   route();
 })();
