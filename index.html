@@ -1043,6 +1043,7 @@
       (wi.courts.length ? courtCards(wi.courts,'next') : '<div class="pending">No courts yet.</div>') +
       (wi.notes.length ? '<div class="notes">'+wi.notes.map(n=>'<div>'+esc(n)+'</div>').join('')+'</div>' : '') +
       '</div>' +
+      adminPxHtml() +
       adminResultsHtml() +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Flags for review</div>' + ((wi.flags||[]).length ? (wi.flags||[]).map(f => '<div class="banner" style="margin-top:8px">'+esc(f)+'</div>').join('') : '<div class="note">Nothing to flag. The engine placed everyone by the standard rules.</div>') + '<div class="note">Courts are placed automatically by the engine every time someone confirms or cancels. Anything unusual (a returning top-4 alumnus, a new player) shows here so you can check it.</div></div>' +
       '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Why these courts</div><div class="note" style="margin-bottom:8px">Rank court = where the player\u0027s rank alone puts them. Form = average of the last 2 played sessions, weighted by court (A 1-4, B 4-7, C 7-10), lower is better. A swap needs a gap of ' + FORM_GAP + ' or more.</div>' +
@@ -1100,6 +1101,14 @@
     ov.querySelector('#pclose').addEventListener('click', () => ov.remove());
     if(applyId) ov.querySelector('#papply').addEventListener('click', async () => { const r = await adminCall({op:'applyProcess', session:applyId}); toast(r.ok ? 'Published.' : (r.error || 'Failed'), !r.ok); ov.remove(); });
   }
+  function adminPxHtml(){
+    const pl = (live && live.plan && live.plan.courts) || [];
+    if(!pl.length) return '';
+    const px = (live && live.px) || {};
+    return '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">CourtX numbers &middot; Week ' + live.week + '</div>' +
+      pl.map(c => '<div class="lbl">League Court ' + c.name + '</div>' + c.players.map(p => '<div class="arow"><span style="width:140px;display:inline-block">' + esc(p.name) + '</span><input class="field pxin" data-n="' + esc(p.name) + '" type="number" min="1" style="width:90px" placeholder="TBD" value="' + (px[p.name] || '') + '"></div>').join('')).join('') +
+      '<div class="arow"><button class="btn" id="pxsave">Save CourtX numbers</button></div><div class="note">Type the CourtX court number next to each player. Blank = TBD. Publishes to the Confirmations page for the selected session straight away.</div></div>';
+  }
   function adminResultsHtml(){
     const rs = (rawState && rawState.results) || [];
     if(!rs.length) return '<div class="card" style="margin-top:12px"><div class="lbl" style="margin-top:0">Game-day results</div><div class="note" style="margin-top:0">Nothing is waiting for results. They open on game day at 8:00 PM ET.</div></div>' + adminProcessHtml();
@@ -1146,6 +1155,7 @@
       toast(ok + ' of ' + names.length + ' players removed.', ok !== names.length);
       rerender();
     });
+    if(g('pxsave')) g('pxsave').addEventListener('click', () => { const m = {}; document.querySelectorAll('.pxin').forEach(i => { const v = Number(i.value); if(v > 0) m[i.getAttribute('data-n')] = v; }); run({op:'setPhysical', map:m}, 'CourtX numbers saved.'); });
     g('asetmax').addEventListener('click', () => { const v = g('amax').value.trim() || '0'; run({op:'setMaxCourts', value:v}, Number(v) > 0 ? 'Max courts set to ' + v + '.' : 'Court limit removed.'); });
     g('asettime').addEventListener('click', () => run({op:'setMatchTime', value:g('atime').value.trim()}, 'Match time updated.'));
     g('arostrmbtn').addEventListener('click', async () => {
