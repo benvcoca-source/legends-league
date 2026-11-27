@@ -177,7 +177,7 @@ function llHandle(rows, b, isAdmin, nowIso) {
       if (!s1) { return fail("No open session"); }
       if (st.roster.indexOf(b.player) < 0) { return fail("Unknown player"); }
       if (b.action !== "confirm" && b.action !== "cancel") { return fail("Bad action"); }
-      add.push([ts, s1.id, b.player, b.action, "admin"]);
+      add.push([(b.at && /^\d{4}-\d\d-\d\dT/.test(String(b.at)) ? String(b.at) : ts), s1.id, b.player, b.action, "admin"]);
     } else if (op === "setMaxCourts") {
       var mc = Number(b.value);
       if (!candById(b.session)) { return fail("Unknown session"); }
