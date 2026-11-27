@@ -371,6 +371,7 @@ function llProcess(ladder, week, courts, opts) {
     NL.p[nm] = { r: r, b: Math.min(o.b || r, r), s: newS[nm], f: f, lp: played[nm] ? week : o.lp, au: o.au || 0 };
     var prev = oldRank[nm]; var tr = prev === null ? "New" : (r === prev ? "=" : (r < prev ? "up " + (prev - r) : "down " + (r - prev)));
     var det = (why[nm] || []).join(" ");
+    if (!det && newS[nm] === "Locked" && prev !== null && r !== prev) { var nw = Object.keys(played).filter(function (q) { return oldRank[q] === null || P[q].s === "New"; }); det = "Inactive block moves " + (r > prev ? "down" : "up") + " one place as " + (nw.length ? nw.join(" & ") : "a returning player") + " joins above it."; }
     if (!det) { det = prev !== null && r !== prev ? "Moves " + (r < prev ? "up" : "down") + " as others ahead or behind change places." : (played[nm] ? "Played, no rank movement." : (newS[nm] === "Locked" ? "Inactive, rank held." : "Rank held.")); }
     if (info[nm] && info[nm].place === 1 && !/Finished 1/.test(det)) { det = "1st on League Court " + info[nm].court + ". " + det; }
     rows.push({ rank: r, name: nm, prev: prev, trend: tr, status: newS[nm], detail: det, court: info[nm] ? info[nm].court : "", place: info[nm] ? info[nm].place : null });

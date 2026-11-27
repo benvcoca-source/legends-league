@@ -121,6 +121,7 @@
   .ccmoves div span{font-family:'IBM Plex Mono',monospace;color:var(--mute)}
   .ccmoves.up h4{color:#7fd9ad}.ccmoves.dn h4{color:#ff8d73}
   @media (prefers-reduced-motion:reduce){.ccconf,.cctro,#navrec,#navrec b,.nextbar.recbar .pc{animation:none}}
+  .ordr{margin:4px 0 12px}.ordr div{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:14px;font-weight:600}
   .rsum{display:flex;gap:10px;align-items:center;padding:7px 0;font-size:14px}
   .rg{display:grid;grid-template-columns:minmax(0,1fr) 46px 92px;gap:6px;align-items:center}
   .rg.n2{grid-template-columns:minmax(0,1fr) 46px}
@@ -925,7 +926,7 @@
     h += '<h2 class="sec">Choose your League Court <span class="hint">' + done + ' of ' + rs.courts.length + ' recorded</span></h2>';
     if(rs.allIn) h += '<div class="banner" style="border-color:var(--green);color:#7fd9ad;background:rgba(95,191,143,.12)">All courts are recorded. The results will be published shortly.</div>';
     h += '<div class="rbig">' + rs.courts.map(c => '<div class="rcard' + (c.done ? ' done' : '') + '"' + (c.done ? '' : ' data-court="' + c.name + '"') + '><h3>League Court ' + c.name + '</h3><p>' + c.players.map(esc).join(' &middot; ') + '</p>' +
-      (c.done ? '<span class="chip go">Recorded</span>' + (c.conflicts && c.conflicts.length ? '<p style="margin:10px 0 0;color:var(--gold)">Another entry differs. Ben will review.</p>' : '') : '<span class="chip wait">Not recorded yet &middot; tap to record</span>') + '</div>').join('') + '</div>' +
+      (c.done ? '<div class="ordr">' + Object.keys(c.places).sort((a,b)=>c.places[a]-c.places[b]).map(n => '<div><span class="medal m' + Math.min(c.places[n],4) + '">' + ord(c.places[n]) + '</span> ' + esc(n) + '</div>').join('') + '</div><span class="chip go">Recorded</span>' + (c.conflicts && c.conflicts.length ? '<p style="margin:10px 0 0;color:var(--gold)">Another entry differs. Ben will review.</p>' : '') : '<span class="chip wait">Not recorded yet &middot; tap to record</span>') + '</div>').join('') + '</div>' +
       '';
     return h;
   }
