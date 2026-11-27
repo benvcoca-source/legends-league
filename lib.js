@@ -296,7 +296,7 @@ function llProcess(ladder, week, courts, opts) {
   opts = opts || {};
   var P = ladder.p; var names = Object.keys(P); var flags = []; var i; var j; var n;
   var played = {}; var info = {}; // name -> {court, place, ci}
-  for (i = 0; i < courts.length; i++) { for (j = 0; j < courts[i].players.length; j++) { n = courts[i].players[j]; if (/^Guest/.test(n)) { continue; } played[n] = true; info[n] = { court: courts[i].name, place: courts[i].places[n], ci: i }; } }
+  for (i = 0; i < courts.length; i++) { for (j = 0; j < courts[i].players.length; j++) { n = courts[i].players[j]; if (/^Guest/.test(n)) { continue; } played[n] = true; var lg = courts[i].players.filter(function (y) { return !/^Guest/.test(y) && courts[i].places[y] < courts[i].places[n]; }).length + 1; info[n] = { court: courts[i].name, place: lg, ci: i }; } }
   var seq = names.slice().sort(function (a, b) { return P[a].r - P[b].r; });
   var why = {}; function addWhy(nm, t) { (why[nm] = why[nm] || []).push(t); }
   var oldRank = {}; seq.forEach(function (x, k) { oldRank[x] = k + 1; });
