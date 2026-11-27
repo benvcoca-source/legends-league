@@ -142,7 +142,7 @@ function llState(rows, nowIso) {
   var f = sessions[0] || null;
   var nx = S.next ? { id: S.next.id, week: S.next.week, date: S.next.date, time: S.next.time, opensDate: S.next.opensDate } : null;
   return {
-    sessions: sessions, results: results, next: nx, upcoming: upcoming, roster: roster, ladderLw: S.lw, lastProcessed: llJson(cfg.lastProcessed, null), autoProcess: cfg.autoProcess === "1", serverTime: nowIso,
+    sessions: sessions, results: results, next: nx, upcoming: upcoming, roster: roster, ladderLw: S.lw, lastProcessed: llJson(cfg.lastProcessed, null), recView: (function () { var lpx = llJson(cfg.lastProcessed, null); if (!lpx || !lpx.date) { return false; } if (now.date === lpx.date) { return now.time >= (llJson(cfg["sess:" + lpx.date], {}).ropen || "20:00") || true; } return now.date === llAddDays(lpx.date, 1) && now.time < "09:00"; })(), autoProcess: cfg.autoProcess === "1", serverTime: nowIso,
     week: f ? f.week : null, date: f ? f.date : "", deadline: null, maxCourts: f ? f.maxCourts : 0, matchTime: f ? f.time : "",
     confirmed: f ? f.confirmed : [], changes: f ? f.changes : {}, courts: null, plan: f ? f.plan : null, activity: f ? f.activity : []
   };

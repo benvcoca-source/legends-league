@@ -903,8 +903,15 @@
   function recSession(){ const o = openResults(); return o.length ? o[0] : null; }
   function viewRecord(){
     const rs = recSession();
-    let h = hero({img:2, sm:true, kick:'Oakville Padel Organization — game day', title:'Record', accent:'Results', sub: rs ? 'Week ' + rs.week + ' · ' + fmtDate(rs.date,true) + '. Record your League Court as soon as you finish playing.' : 'Results open on game day at 8:00 PM ET.'});
+    let h = hero({img:2, sm:true, kick:'Oakville Padel Organization — game day', title:'Record', accent:'Results', sub: rs ? 'Week ' + rs.week + ' · ' + fmtDate(rs.date,true) + '. Record your League Court as soon as you finish playing.' : (rawState && rawState.recView && rawState.lastProcessed ? 'Week ' + rawState.lastProcessed.week + ' · ' + fmtDate(rawState.lastProcessed.date,true) + '. Results are in. Here is how every League Court finished.' : 'Results open on game day at 8:00 PM ET.')});
     if(!rawState){ return h + '<div class="pending">Loading...</div>'; }
+    if(!rs && rawState.recView && rawState.lastProcessed){
+      const lp = rawState.lastProcessed; const cs = {};
+      lp.rows.forEach(r => { if(r.court){ (cs[r.court] = cs[r.court] || []).push(r); } });
+      h += '<h2 class="sec">Week ' + lp.week + ' results <span class="hint">recorded and published</span></h2><div class="banner" style="border-color:var(--green);color:#7fd9ad;background:rgba(95,191,143,.12)">All courts are recorded and the standings are updated. See the full results on Latest Results.</div><div class="rbig">' +
+        Object.keys(cs).sort().map(k => '<div class="rcard done"><h3>League Court ' + esc(k) + '</h3><div class="ordr">' + cs[k].slice().sort((a,b)=>a.place-b.place).map(r => '<div><span class="medal m' + Math.min(r.place,4) + '">' + ord(r.place) + '</span> ' + esc(r.name) + '</div>').join('') + '</div><span class="chip go">Recorded</span></div>').join('') + '</div>';
+      return h;
+    }
     if(!rs){
       const pend = allResults()[0];
       return h + '<div class="card" style="margin-top:6px"><div class="who" style="font-size:16px;font-weight:700">' + (pend ? 'Results for Week ' + pend.week + ' open on ' + fmtDay(pend.date) + ' at ' + to12(pend.opensAt) + ' ET' : 'No session is waiting for results right now') + '</div><p class="muted" style="font-size:13px;margin:8px 0 0">After your games, come back here to record your League Court. Results can only be recorded by players who played that day.</p></div>';
@@ -1626,7 +1633,7 @@
   function updateChrome(){
     const wi = weekInfo(); const wkNo = live ? live.week : parseInt(nextMatch.week.replace(/\D/g,''),10);
     const chip = document.getElementById('navchip'); if(chip){ const ns = (rawState && rawState.sessions) ? rawState.sessions.length : 1; chip.innerHTML = !wkNo ? '<i></i>Confirmations' : ns > 1 ? '<i></i>' + ns + ' sessions open' : '<i></i>Week ' + wkNo + ' \u00b7 ' + wi.confirmed.length + ' confirmed'; }
-    const nr = document.getElementById('navrec'); if(nr) nr.style.display = openResults().length ? '' : 'none';
+    const nr = document.getElementById('navrec'); if(nr) nr.style.display = (openResults().length || (rawState && rawState.recView)) ? '' : 'none';
     const b = document.getElementById('brandwk'); if(b) b.textContent = '/ WK ' + lastWeekNo;
   }
   function bindWeeks(sel){
