@@ -29,7 +29,7 @@ function llSessions(cfg, nowIso) {
     for (k = 1; k <= 6; k++) {
       var T = llAddDays(ld, 7 * k);
       var ov = llJson(cfg["sess:" + T], {});
-      var c = { id: T, date: ov.date || T, time: ov.time || "8:00 PM", maxCourts: Number(ov.max) || 0, opensDate: llAddDays(T, -10), cancelled: !!ov.cancel, keep: ov.keep || [], px: ov.px || {}, ropen: ov.ropen || "20:00", week: null };
+      var c = { id: T, date: ov.date || T, time: ov.time || "8:00 PM", maxCourts: Number(ov.max) || 0, opensDate: llAddDays(T, -10), cancelled: !!ov.cancel, keep: ov.keep || [], px: ov.px || {}, ropen: ov.ropen || "20:00", mcourts: ov.courts || null, week: null };
       if (!c.cancelled) { num++; c.week = num; }
       all.push(c);
     }
@@ -105,6 +105,11 @@ function llState(rows, nowIso) {
         if (s.week > S.lw + 1) { plan.notes.push("These courts use the rankings from before Week " + (S.lw + 1) + " results. They update automatically once those results are in."); }
       }
     } catch (e4) { plan = { error: String(e4 && e4.message ? e4.message : e4) }; }
+    if (s.mcourts && plan && !plan.error) {
+      var mkeys = Object.keys(s.mcourts).sort(); var mplay = [];
+      plan.courts = mkeys.map(function (k) { return { name: k, players: s.mcourts[k].map(function (n) { mplay.push(n); var pr = S.ladder && S.ladder.p ? S.ladder.p[n] : null; return { name: n, rank: pr ? pr.r : null, guest: /^Guest/.test(n) }; }) }; });
+      plan.playing = mplay; plan.notes = (plan.notes || []).concat(["Courts were set manually by the admin for this session."]);
+    }
     return { id: s.id, week: s.week, date: s.date, time: s.time, maxCourts: s.maxCourts, px: s.px, confirmed: names, changes: bk.changes, plan: plan, activity: bk.act.slice(-30).reverse() };
   }
   for (i = 0; i < S.open.length; i++) { built[S.open[i].id] = mk(S.open[i]); sessions.push(built[S.open[i].id]); }
@@ -234,6 +239,15 @@ function llHandle(rows, b, isAdmin, nowIso) {
       if (!prevL) { return fail("No snapshot for Week " + (rp.week - 1) + "."); }
       add.push([ts, "", "ladder", "config", JSON.stringify(prevL)]);
       add.push([ts, "", "lastProcessed", "config", ""]);
+    } else if (op === "setCourts") {
+      if (!candById(b.session)) { return fail("Unknown session"); }
+      if (!b.courts || typeof b.courts !== "object") { return fail("courts must be an object of court letter to names"); }
+      var cc = {}; var ck; var cn;
+      for (ck in b.courts) { cc[ck] = []; for (cn = 0; cn < b.courts[ck].length; cn++) { var nm = String(b.courts[ck][cn]); if (!/^Guest/.test(nm) && st.roster.indexOf(nm) < 0) { return fail("Unknown player " + nm); } cc[ck].push(nm); } if (cc[ck].length < 1 || cc[ck].length > 4) { return fail("Each court needs 1 to 4 players"); } }
+      setOv(b.session, { courts: cc });
+    } else if (op === "clearCourts") {
+      if (!candById(b.session)) { return fail("Unknown session"); }
+      setOv(b.session, { courts: null });
     } else if (op === "check") {
       return { append: false, out: { ok: true, state: st } };
     } else { return fail("Unknown admin op"); }
@@ -282,7 +296,7 @@ function llProcess(ladder, week, courts, opts) {
   opts = opts || {};
   var P = ladder.p; var names = Object.keys(P); var flags = []; var i; var j; var n;
   var played = {}; var info = {}; // name -> {court, place, ci}
-  for (i = 0; i < courts.length; i++) { for (j = 0; j < courts[i].players.length; j++) { n = courts[i].players[j]; played[n] = true; info[n] = { court: courts[i].name, place: courts[i].places[n], ci: i }; } }
+  for (i = 0; i < courts.length; i++) { for (j = 0; j < courts[i].players.length; j++) { n = courts[i].players[j]; if (/^Guest/.test(n)) { continue; } played[n] = true; info[n] = { court: courts[i].name, place: courts[i].places[n], ci: i }; } }
   var seq = names.slice().sort(function (a, b) { return P[a].r - P[b].r; });
   var why = {}; function addWhy(nm, t) { (why[nm] = why[nm] || []).push(t); }
   var oldRank = {}; seq.forEach(function (x, k) { oldRank[x] = k + 1; });
@@ -339,9 +353,9 @@ function llProcess(ladder, week, courts, opts) {
   var s1 = build(w.concat(tail)); var step1 = {}; s1.forEach(function (x, k) { step1[x] = k + 1; });
   // ---- Step 2: same-court leapfrog on the step-1 order
   var s2 = s1.slice();
-  var order = []; courts.forEach(function (c) { c.players.slice().sort(function (a, b) { return c.places[a] - c.places[b]; }).forEach(function (x) { order.push({ x: x, c: c }); }); });
+  var order = []; courts.forEach(function (c) { c.players.slice().sort(function (a, b) { return c.places[a] - c.places[b]; }).forEach(function (x) { if (!/^Guest/.test(x)) { order.push({ x: x, c: c }); } }); });
   order.forEach(function (o) {
-    var x = o.x; var c = o.c; var beaten = c.players.filter(function (y) { return y !== x && c.places[y] > c.places[x] && step1[y] < step1[x]; });
+    var x = o.x; var c = o.c; var beaten = c.players.filter(function (y) { return y !== x && !/^Guest/.test(y) && c.places[y] > c.places[x] && step1[y] < step1[x]; });
     if (!beaten.length) { return; }
     beaten.sort(function (a, b) { return step1[a] - step1[b]; });
     var tgt = beaten[0]; var xi = s2.indexOf(x); var ti = s2.indexOf(tgt);
@@ -357,7 +371,7 @@ function llProcess(ladder, week, courts, opts) {
     NL.p[nm] = { r: r, b: Math.min(o.b || r, r), s: newS[nm], f: f, lp: played[nm] ? week : o.lp, au: o.au || 0 };
     var prev = oldRank[nm]; var tr = prev === null ? "New" : (r === prev ? "=" : (r < prev ? "up " + (prev - r) : "down " + (r - prev)));
     var det = (why[nm] || []).join(" ");
-    if (!det) { det = played[nm] ? "Played, no rank movement." : (newS[nm] === "Locked" ? "Inactive, rank held." : "Rank held."); }
+    if (!det) { det = prev !== null && r !== prev ? "Moves " + (r < prev ? "up" : "down") + " as others ahead or behind change places." : (played[nm] ? "Played, no rank movement." : (newS[nm] === "Locked" ? "Inactive, rank held." : "Rank held.")); }
     if (info[nm] && info[nm].place === 1 && !/Finished 1/.test(det)) { det = "1st on League Court " + info[nm].court + ". " + det; }
     rows.push({ rank: r, name: nm, prev: prev, trend: tr, status: newS[nm], detail: det, court: info[nm] ? info[nm].court : "", place: info[nm] ? info[nm].place : null });
   });
@@ -367,7 +381,7 @@ function llProcess(ladder, week, courts, opts) {
 function llSummary(lad, out, courts, pr, ts) {
   var rows = out.rows; var winners = []; var i; var byName = {};
   rows.forEach(function (r) { byName[r.name] = r; });
-  courts.forEach(function (c) { var w = null; c.players.forEach(function (n) { if (c.places[n] === 1) { w = n; } }); if (w) { var r = byName[w]; winners.push({ name: w, court: c.name, prev: r.prev, rank: r.rank, players: c.players.slice().sort(function (a, b) { return c.places[a] - c.places[b]; }) }); } });
+  courts.forEach(function (c) { var w = null; var bp = 99; c.players.forEach(function (n) { if (!/^Guest/.test(n) && c.places[n] < bp) { bp = c.places[n]; w = n; } }); if (w) { var r = byName[w]; winners.push({ name: w, court: c.name, prev: r.prev, rank: r.rank, players: c.players.slice().sort(function (a, b) { return c.places[a] - c.places[b]; }) }); } });
   var moves = rows.filter(function (r) { return r.prev !== null && r.prev !== r.rank; });
   var up = moves.filter(function (r) { return r.rank < r.prev; }).sort(function (a, b) { return (b.prev - b.rank) - (a.prev - a.rank); }).slice(0, 5).map(function (r) { return { name: r.name, prev: r.prev, rank: r.rank }; });
   var down = moves.filter(function (r) { return r.rank > r.prev; }).sort(function (a, b) { return (b.rank - b.prev) - (a.rank - a.prev); }).slice(0, 5).map(function (r) { return { name: r.name, prev: r.prev, rank: r.rank }; });
