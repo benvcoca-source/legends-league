@@ -1,6 +1,6 @@
 /* Legends League server library (stored in the sheet config as key "lib"; loaded by the thin n8n shells).
    Exports (by name): llState(rows, nowIso), llHandle(rows, body, isAdmin, nowIso).
-   Sessions: confirmations for Thursday T open automatically at 09:00 America/Toronto on the Monday 10 days before (T minus 10 days), so two sessions can be open at once. */
+   Sessions: confirmations for Thursday T open automatically at 09:00 America/Toronto on the Monday 17 days before (T minus 17 days), so up to three sessions can be open at once. */
 function llCfg(rows) {
   var cfg = {}; var i; var r;
   for (i = 1; i < rows.length; i++) { r = rows[i]; if (r[3] === "config") { cfg[r[2]] = (r[4] === undefined ? "" : r[4]); } }
@@ -29,7 +29,7 @@ function llSessions(cfg, nowIso) {
     for (k = 1; k <= 6; k++) {
       var T = llAddDays(ld, 7 * k);
       var ov = llJson(cfg["sess:" + T], {});
-      var c = { id: T, date: ov.date || T, time: ov.time || "8:00 PM", maxCourts: Number(ov.max) || 0, opensDate: llAddDays(T, -10), cancelled: !!ov.cancel, keep: ov.keep || [], px: ov.px || {}, ropen: ov.ropen || "20:00", mcourts: ov.courts || null, week: null };
+      var c = { id: T, date: ov.date || T, time: ov.time || "8:00 PM", maxCourts: Number(ov.max) || 0, opensDate: llAddDays(T, -17), cancelled: !!ov.cancel, keep: ov.keep || [], px: ov.px || {}, ropen: ov.ropen || "20:00", mcourts: ov.courts || null, week: null };
       if (!c.cancelled) { num++; c.week = num; }
       all.push(c);
     }
